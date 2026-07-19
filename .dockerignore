@@ -1,0 +1,19 @@
+# Keep Docker build fast and reliable on Railway
+node_modules
+.next
+.turbo
+.git
+.vercel
+.env
+.env.*
+!.env.example
+logs
+backups
+deploy/docker/data
+*.log
+.DS_Store
+coverage
+.pytest_cache
+__pycache__
+.venv
+venv

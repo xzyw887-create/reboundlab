@@ -1,0 +1,22 @@
+# Deploy BackTest Pro to Render (free *.onrender.com)
+# 1. Push repo to GitHub
+# 2. render.com → New → Blueprint → this file
+# 3. Set DATABASE_URL + JWT_SECRET (same as Vercel / Supabase demo)
+# 4. Local candles: bash scripts/demo-cloud-setup.sh
+
+services:
+  - type: web
+    name: reboundlab-web
+    runtime: docker
+    dockerfilePath: ./deploy/docker/Dockerfile.web
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PROJECT_ROOT
+        value: /app
+      - key: JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false

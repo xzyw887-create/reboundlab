@@ -1,0 +1,33 @@
+{
+  "name": "reboundlab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Crypto backtesting SaaS platform",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "db:migrate": "node scripts/migrate/run.js",
+    "db:migrate:neon": "node scripts/migrate/apply-neon.js",
+    "db:migrate:market-demo": "node scripts/migrate/apply-market-demo.js",
+    "demo:cloud-setup": "bash scripts/demo-cloud-setup.sh",
+    "docker:up": "docker compose -f deploy/docker/docker-compose.dev.yml up -d",
+    "docker:down": "docker compose -f deploy/docker/docker-compose.dev.yml down",
+    "web:dev": "npm run dev --workspace=@reboundlab/web",
+    "web:build": "npm run build --workspace=@reboundlab/web",
+    "web:restart": "bash scripts/restart-web.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

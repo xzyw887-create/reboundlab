@@ -1,0 +1,10 @@
+# Keep deploy lean — skip Python microservices (backtest uses spawn locally; use Render for full app)
+.env
+.env.*
+logs/
+**/__pycache__/
+**/*.pyc
+node_modules/
+deploy/docker/
+services/
+.git/

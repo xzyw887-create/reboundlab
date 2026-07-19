@@ -1,58 +1,42 @@
-# Демо в облаке — 3 монеты + калькулятор на Render
+# Демо в облаке — 3 монеты + калькулятор с Python
 
-Пока на Mac идёт полный backfill, публичное демо: **Supabase (мало данных) + Render (Python-бэктест)**.
+**Render не открывается?** Используйте **Railway** (ниже) — тот же Docker, без GitHub.
 
-## Шаг 1 — Свечи в Supabase (~5 мин)
-
-Supabase → **Connect** → **Transaction pooler** → **Copy**.
-
-В терминале на Mac:
+## Шаг 1 — Свечи в Supabase
 
 ```bash
 cd ~/Projects/reboundlab
-DATABASE_URL='postgresql://postgres.xwclvdckofcvnwkaqemq:ПАРОЛЬ@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require' \
+DATABASE_URL='postgresql://...@aws-0-eu-west-1.pooler.supabase.com:5432/postgres' \
   bash scripts/demo-cloud-setup.sh
 ```
 
-Загрузит **BTC, ETH, SOL × 30 дней** (минутные свечи, ~130k строк — влезает в free Supabase).
+*(Порт **5432**, не 6543.)*
 
-## Шаг 2 — Render (полный сайт + калькулятор)
+## Шаг 2 — Railway (сайт + Python + бэктест)
 
-1. Репозиторий на **GitHub** (New repo → push проект)
-2. [render.com](https://render.com) → **New** → **Blueprint** → репозиторий → `render.yaml`
-3. Environment variables в Render:
+```bash
+npm install -g @railway/cli
+railway login
+cd ~/Projects/reboundlab
+railway init
+railway variables --set "DATABASE_URL=..." --set "JWT_SECRET=..." --set "PROJECT_ROOT=/app"
+bash scripts/deploy-railway.sh
+```
+
+Получите URL вида `https://reboundlab-production.up.railway.app`
+
+Проверка: `/app` → BTC, ETH, SOL → **бэктест считается**.
+
+## Шаг 3 — Vercel (опционально)
+
+Кнопки лендинга → Railway:
 
 | Key | Value |
 |-----|--------|
-| `DATABASE_URL` | та же строка Supabase pooler |
-| `JWT_SECRET` | тот же, что в Vercel (`11d02cbf...` или свой) |
+| `NEXT_PUBLIC_FULL_APP_URL` | URL Railway |
 
-4. Deploy → URL вида `https://reboundlab-web.onrender.com`
+---
 
-Проверка: `/register` → `/app` → выбор BTC/ETH/SOL → бэктест.
+## Альтернатива: Render
 
-## Шаг 3 — Vercel (лендинг → демо на Render)
-
-Vercel → Environment Variables → добавить:
-
-| Key | Value |
-|-----|--------|
-| `NEXT_PUBLIC_FULL_APP_URL` | `https://reboundlab-web.onrender.com` |
-
-Redeploy Vercel. Кнопки «Калькулятор» / «3 дня бесплатно» ведут на Render.
-
-## Архитектура
-
-```
-Vercel (лендинг)  ──ссылки──►  Render (сайт + Python)
-                                    │
-                                    ▼
-                              Supabase Postgres
-                              (users + 3 монеты × 30d)
-```
-
-**Важно:** регистрация для демо — на **Render** (тот же JWT + БД). Vercel только маркетинг.
-
-## Позже (платная версия)
-
-Свой домен, Neon/Supabase Pro, полный backfill 1095d — отдельный этап.
+Если render.com откроется — `render.yaml` + GitHub (см. комментарии в файле).

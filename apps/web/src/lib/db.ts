@@ -9,11 +9,14 @@ declare global {
   var pgPool: Pool | undefined;
 }
 
+const isLocalDb = DATABASE_URL.includes("localhost");
+
 export function getPool(): Pool {
   if (!global.pgPool) {
     global.pgPool = new Pool({
       connectionString: DATABASE_URL,
       max: Number(process.env.DATABASE_POOL_SIZE ?? 10),
+      ssl: isLocalDb ? false : { rejectUnauthorized: false },
     });
   }
   return global.pgPool;

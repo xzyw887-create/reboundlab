@@ -27,4 +27,4 @@ RUN npm run web:build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start", "--workspace=@reboundlab/web", "--", "-H", "0.0.0.0"]
+CMD ["sh", "-c", "npm run start --workspace=@reboundlab/web -- -p ${PORT:-3000}"]

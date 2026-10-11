@@ -189,7 +189,6 @@ export function PriceChart({ candles, markers = [], height = 360 }: Props) {
         <span className="text-green-400">▲ покупка</span>
         <span className="text-red-400">▼ продажа</span>
         <span className="text-yellow-400">● усреднение</span>
-        <span className="text-gray-600">— наведите на свечу со сделкой</span>
       </div>
       <div className="relative w-full rounded-xl border border-border/60 overflow-hidden bg-panel-inner">
         <div ref={containerRef} className="w-full" />

@@ -6,7 +6,7 @@ export interface BacktestParams {
   entry_pct: number;
   leverage: number;
   drop_pct: number;
-  timeframe: string;
+  timeframe: string; /** Chart display only — backtest engine always uses 1m */
   tp: number;
   sl?: number;
   /** Run grid-search optimizer (Automatic mode) */

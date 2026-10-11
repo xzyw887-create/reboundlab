@@ -5,8 +5,10 @@ import {
   createChart,
   ColorType,
   AreaSeries,
+  CrosshairMode,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { useLocale } from "@/lib/i18n";
 
 interface Point {
   time: number;
@@ -20,7 +22,6 @@ interface Props {
   periodStart: string;
   periodEnd: string;
   height?: number;
-  excludesOpenTrade?: boolean;
 }
 
 function dateToUtcStart(dateStr: string): number {
@@ -117,14 +118,19 @@ function getPriceRange(levels: number[]): { min: number; max: number } {
   return { min: min - pad, max: max + pad };
 }
 
+function formatBalance(price: number): string {
+  if (!Number.isFinite(price)) return "";
+  return `$${price.toFixed(2)}`;
+}
+
 export function PnlChart({
   data,
   initialDeposit,
   periodStart,
   periodEnd,
   height = 130,
-  excludesOpenTrade = false,
 }: Props) {
+  const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const axisFrom = dateToUtcStart(periodStart);
@@ -202,6 +208,11 @@ export function PnlChart({
       },
       handleScroll: false,
       handleScale: false,
+      crosshair: {
+        mode: CrosshairMode.Magnet,
+        vertLine: { labelVisible: true },
+        horzLine: { labelVisible: true },
+      },
       timeScale: {
         borderColor: "#1e2d42",
         timeVisible: true,
@@ -213,9 +224,12 @@ export function PnlChart({
       },
       rightPriceScale: {
         borderColor: "#1e2d42",
+        borderVisible: false,
         scaleMargins: { top: 0.12, bottom: 0.12 },
-        minimumWidth: 76,
-        entireTextOnly: false,
+        minimumWidth: 56,
+        ticksVisible: false,
+        tickMarkDensity: 999,
+        entireTextOnly: true,
       },
     });
 
@@ -229,6 +243,14 @@ export function PnlChart({
       topColor,
       bottomColor: "rgba(0, 0, 0, 0)",
       lineWidth: 2,
+      lastValueVisible: true,
+      priceLineVisible: true,
+      baseLineVisible: false,
+      priceFormat: {
+        type: "custom",
+        formatter: formatBalance,
+        minMove: 0.01,
+      },
       autoscaleInfoProvider: () => ({
         priceRange: {
           minValue: priceRange.min,
@@ -251,8 +273,8 @@ export function PnlChart({
         color: isStart ? "#6b7280" : "#4b5563",
         lineWidth: 1,
         lineStyle: isStart ? 2 : 3,
-        axisLabelVisible: true,
-        title: isStart ? "Старт" : "",
+        axisLabelVisible: false,
+        title: "",
       });
     }
 
@@ -303,20 +325,14 @@ export function PnlChart({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-xs font-medium text-gray-400">
-          Кривая баланса (закрытые сделки
-          {excludesOpenTrade ? ", без открытой в конце периода" : ""})
-        </h3>
-        <p className="text-[11px] text-gray-500">
-          ${initialDeposit.toFixed(0)} → ${lastBalance.toFixed(2)}
-          <span
-            className={
-              delta >= 0 ? "text-green-400 ml-1" : "text-red-400 ml-1"
-            }
-          >
-            ({delta >= 0 ? "+" : ""}
-            {deltaPct.toFixed(2)}%)
-          </span>
+        <h3 className="text-xs font-medium text-gray-400">{t.app.equityCurve}</h3>
+        <p
+          className={`text-[11px] font-medium tabular-nums ${
+            delta >= 0 ? "text-green-400" : "text-red-400"
+          }`}
+        >
+          {delta >= 0 ? "+" : ""}
+          {deltaPct.toFixed(2)}%
         </p>
       </div>
       <div

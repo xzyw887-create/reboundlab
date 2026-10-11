@@ -34,6 +34,7 @@ from backtester.simulators.single_coin import OpenPosition
 from backtester.strategies.averaging import should_average
 from backtester.strategies.entry import DropFromPeakTracker
 from backtester.strategies.trailing import TrailingStop
+from backtester.data.resample import build_tf_close_lookup
 
 
 def merge_timeline(
@@ -88,7 +89,13 @@ class MultiCoinSimulator:
 
         timeline = merge_timeline({s: candles_by_symbol[s] for s in symbols})
 
-        entry_trackers = {sym: DropFromPeakTracker() for sym in symbols}
+        entry_trackers = {
+            sym: DropFromPeakTracker(p.entry_timeframe) for sym in symbols
+        }
+        tf_close_lookups = {
+            sym: build_tf_close_lookup(candles_by_symbol[sym], p.entry_timeframe)
+            for sym in symbols
+        }
         last_realized = initial
         funding_map = funding_by_symbol or {}
 
@@ -156,7 +163,15 @@ class MultiCoinSimulator:
                     continue
                 candle = minute_candles[sym]
 
-                entry_price = entry_trackers[sym].check_entry(candle, p.drop_pct)
+                sym_idx = sym_indices[sym].get(t)
+                tf_bar = (
+                    tf_close_lookups[sym].get(sym_idx)
+                    if sym_idx is not None
+                    else None
+                )
+                entry_price = entry_trackers[sym].check_entry(
+                    candle, p.drop_pct, tf_bar=tf_bar
+                )
                 if entry_price is None:
                     continue
                 sym_entry_pct = p.entry_pct_for_symbol(sym)

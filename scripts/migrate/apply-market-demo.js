@@ -42,11 +42,13 @@ async function runFile(client, rel) {
 
 async function main() {
   const connUrl = DB_URL.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
+  const noSsl =
+    connUrl.includes("localhost") ||
+    connUrl.includes("@postgres:") ||
+    process.env.DATABASE_SSL === "0";
   const client = new Client({
     connectionString: connUrl,
-    ssl: connUrl.includes("localhost")
-      ? false
-      : { rejectUnauthorized: false },
+    ssl: noSsl ? false : { rejectUnauthorized: false },
   });
   await client.connect();
   console.log("Connected");

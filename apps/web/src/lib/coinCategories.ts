@@ -1,4 +1,4 @@
-/** Обычные vs мем-монеты — синхронно с backtester/core/coin_categories.py */
+/** Linear vs high-volatility pairs — synced with backtester/core/coin_categories.py */
 
 export const DEFAULT_MEME_SYMBOLS = new Set([
   "DOGEUSDT",
@@ -34,6 +34,11 @@ export function coinKind(symbol: string): CoinKind {
   return isMemeCoin(symbol) ? "meme" : "regular";
 }
 
+/** Binance-style grouping for UI */
 export function coinKindLabel(kind: CoinKind): string {
-  return kind === "meme" ? "Мемы" : "Обычные";
+  return kind === "meme" ? "Volatility pairs" : "Linear Perpetuals";
+}
+
+export function shortSymbol(symbol: string): string {
+  return symbol.replace("USDT", "");
 }

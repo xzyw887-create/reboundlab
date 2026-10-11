@@ -9,10 +9,12 @@ interface Props {
   min?: number;
   max?: number;
   integer?: boolean;
+  prefix?: string;
+  suffix?: string;
 }
 
 function formatDisplay(value: number, integer: boolean): string {
-  if (integer) return String(value);
+  if (integer) return String(Math.round(value));
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
@@ -36,6 +38,8 @@ export function NumericInput({
   min,
   max,
   integer = false,
+  prefix,
+  suffix,
 }: Props) {
   const resolvedStep = step ?? (integer ? 1 : 0.1);
   const [draft, setDraft] = useState<string | null>(null);
@@ -55,23 +59,38 @@ export function NumericInput({
   }
 
   return (
-    <input
-      type="number"
-      step={resolvedStep}
-      min={min}
-      max={max}
-      value={editing ? draft ?? "" : formatDisplay(value, integer)}
-      onFocus={(e) => {
-        setDraft(formatDisplay(value, integer));
-        e.target.select();
-      }}
-      onBlur={() => {
-        if (draft !== null) commit(draft);
-      }}
-      onChange={(e) => setDraft(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
-      }}
-    />
+    <div className="form-number-input flex items-center gap-1.5">
+      {prefix ? (
+        <span className="shrink-0 text-sm text-muted tabular-nums select-none">
+          {prefix}
+        </span>
+      ) : null}
+      <input
+        type="number"
+        step={resolvedStep}
+        min={min}
+        max={max}
+        className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-sm tabular-nums text-gray-100 focus:outline-none focus:ring-0 ${
+          suffix ? "pr-1" : "pr-0"
+        }`}
+        value={editing ? draft ?? "" : formatDisplay(value, integer)}
+        onFocus={(e) => {
+          setDraft(formatDisplay(value, integer));
+          e.target.select();
+        }}
+        onBlur={() => {
+          if (draft !== null) commit(draft);
+        }}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+      />
+      {suffix ? (
+        <span className="shrink-0 text-sm text-muted tabular-nums select-none">
+          {suffix}
+        </span>
+      ) : null}
+    </div>
   );
 }

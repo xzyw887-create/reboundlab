@@ -1,4 +1,6 @@
 import type { BacktestParams, BacktestResult } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/en";
+import { formatTpl } from "@/lib/i18n";
 
 const STORAGE_A = "reboundlab-compare-a";
 const STORAGE_B = "reboundlab-compare-b";
@@ -34,14 +36,31 @@ export function clearCompareSlot(slot: "A" | "B"): void {
   localStorage.removeItem(slot === "A" ? STORAGE_A : STORAGE_B);
 }
 
-export function paramsSummary(p: BacktestParams): string {
+export function paramsSummary(p: BacktestParams, t: Dictionary): string {
+  const exit = p.trailing
+    ? formatTpl(t.compareParams.trail, {
+        act: p.trailing_activation,
+        cb: p.trailing_callback,
+      })
+    : formatTpl(t.compareParams.tp, { tp: p.tp });
   const parts = [
-    `${p.entry_pct}%×${p.leverage}x`,
-    `drop ${p.drop_pct}%`,
-    p.trailing ? `trail ${p.trailing_activation}/${p.trailing_callback}` : `TP ${p.tp}%`,
+    formatTpl(t.compareParams.summary, {
+      entry: p.entry_pct,
+      lev: p.leverage,
+      drop: p.drop_pct,
+      exit,
+    }),
   ];
-  if (p.max_open_trades) parts.push(`макс.откр ${p.max_open_trades}`);
-  if (p.entry_pct_split)
-    parts.push(`обычн ${p.entry_pct_regular}%/мем ${p.entry_pct_meme}%`);
+  if (p.max_open_trades) {
+    parts.push(formatTpl(t.compareParams.maxOpen, { n: p.max_open_trades }));
+  }
+  if (p.entry_pct_split) {
+    parts.push(
+      formatTpl(t.compareParams.split, {
+        reg: p.entry_pct_regular,
+        mem: p.entry_pct_meme,
+      })
+    );
+  }
   return parts.join(" · ");
 }

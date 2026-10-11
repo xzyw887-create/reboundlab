@@ -24,4 +24,9 @@ if [ -f "$SCHEMAS_DIR/04_funding_rates.sql" ]; then
   psql "$DB_URL" -f "$SCHEMAS_DIR/04_funding_rates.sql"
 fi
 
+if [ -f "$SCHEMAS_DIR/05_user_runs_auth.sql" ]; then
+  echo "→ user runs + password reset"
+  psql "$DB_URL" -f "$SCHEMAS_DIR/05_user_runs_auth.sql"
+fi
+
 echo "Done."

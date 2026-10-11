@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import type { SubscriptionPlan } from "@/lib/subscriptionTiers";
+import { planCheckoutCharge } from "@/lib/localizedPlans";
+import { useLocale } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
@@ -20,6 +22,8 @@ export function CheckoutModal({
   onClose,
   onConfirm,
 }: Props) {
+  const { t } = useLocale();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -35,6 +39,8 @@ export function CheckoutModal({
 
   if (!open || !plan) return null;
 
+  const charge = planCheckoutCharge(plan, t);
+
   return (
     <div
       className="checkout-backdrop"
@@ -46,9 +52,9 @@ export function CheckoutModal({
       <div className="checkout-panel" onClick={(e) => e.stopPropagation()}>
         <header className="checkout-header">
           <div>
-            <p className="label-caps text-accent/80">Оплата подписки</p>
+            <p className="label-caps text-sky-300/90">Оплата подписки</p>
             <h2 id="checkout-title" className="text-xl font-bold text-white mt-1">
-              {plan.name} — {plan.priceRubLabel} {plan.pricePeriod}
+              {plan.name} — {charge}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="pricing-window-close" aria-label="Закрыть">
@@ -58,8 +64,10 @@ export function CheckoutModal({
 
         <div className="checkout-body space-y-4">
           <p className="text-sm text-muted leading-relaxed">
-            Этап 1: оплата заглушка — как на Tiger.com, но без реального списания. После нажатия
-            «Оплатить» тариф сразу активируется в аккаунте на 30 дней.
+            Оплата-заглушка (без списания с карты). После «Оплатить» тариф активируется в аккаунте:
+            период — календарный месяц от <strong className="text-gray-300">дня первой оплаты</strong>{" "}
+            (например, 10-е → до 10-го следующего месяца). Апгрейд Basic→Pro сохраняет ту же дату
+            окончания. Реальная карта — после ЮKassa.
           </p>
 
           <div className="checkout-summary">
@@ -69,9 +77,7 @@ export function CheckoutModal({
             </div>
             <div className="flex justify-between text-sm mt-2">
               <span className="text-muted">К оплате</span>
-              <span className="text-white font-semibold tabular-nums">
-                {plan.priceRubLabel} {plan.pricePeriod}
-              </span>
+              <span className="text-white font-semibold tabular-nums">{charge}</span>
             </div>
           </div>
 
@@ -104,7 +110,7 @@ export function CheckoutModal({
             onClick={onConfirm}
             className="btn-primary w-full"
           >
-            {loading ? "Активация…" : `Оплатить ${plan.priceRubLabel}`}
+            {loading ? "…" : `${t.pricingUi.pay} ${charge}`}
           </button>
 
           <p className="text-[11px] text-center text-muted">

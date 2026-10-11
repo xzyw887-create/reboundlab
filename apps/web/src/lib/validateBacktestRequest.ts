@@ -1,6 +1,8 @@
-import { query } from "@/lib/db";
+import type { ApiLocale } from "@/lib/apiLocale";
+import { apiMessage } from "@/lib/apiErrors";
 import { getAuthUser } from "@/lib/auth";
 import { computeSelectedCoverage } from "@/lib/dateCoverage";
+import { listSymbolsFromDb } from "@/lib/listSymbols";
 import {
   tierHistoryWindow,
   validateBacktestDateRange,
@@ -10,80 +12,59 @@ import {
   resolveEffectiveSubscription,
   validateBacktestFeatures,
 } from "@/lib/subscriptionEnforcement";
-import type { BacktestParams, SymbolInfo } from "@/lib/types";
-
-async function loadSymbolCatalog(): Promise<SymbolInfo[]> {
-  const rows = await query<{
-    symbol: string;
-    base_asset: string;
-    is_active: boolean;
-    history_from: Date | null;
-    data_from: Date | null;
-    data_to: Date | null;
-    candle_count: string;
-  }>(
-    `SELECT
-        tp.symbol,
-        tp.base_asset,
-        tp.is_active,
-        tp.history_from,
-        MIN(c.open_time) AS data_from,
-        MAX(c.open_time) AS data_to,
-        COUNT(c.open_time) AS candle_count
-     FROM market.trading_pairs tp
-     JOIN market.exchanges e ON e.id = tp.exchange_id
-     LEFT JOIN market.candles c ON c.pair_id = tp.id AND c.timeframe = '1m'
-     WHERE e.code = 'binance' AND tp.is_active = TRUE
-     GROUP BY tp.id, tp.symbol, tp.base_asset, tp.is_active, tp.history_from
-     ORDER BY tp.symbol ASC`
-  );
-
-  return rows.map((row) => {
-    const count = Number(row.candle_count || 0);
-    return {
-      symbol: row.symbol,
-      base: row.base_asset,
-      active: row.is_active,
-      history_from: row.history_from?.toISOString().slice(0, 10) ?? null,
-      min_history_days: 0,
-      data_from: row.data_from?.toISOString().slice(0, 10) ?? null,
-      data_to: row.data_to?.toISOString().slice(0, 10) ?? null,
-      candle_count: count,
-      loaded: count > 0,
-    };
-  });
-}
+import type { BacktestParams } from "@/lib/types";
 
 export async function validateBacktestRequest(
-  params: Partial<BacktestParams>
+  params: Partial<BacktestParams>,
+  locale: ApiLocale
 ): Promise<string | null> {
   const auth = await getAuthUser();
+  if (!auth) {
+    return apiMessage(locale, "AUTH_REQUIRED");
+  }
+
   const sub = resolveEffectiveSubscription(auth);
 
-  if (sub.blockedReason) {
-    return sub.blockedReason;
+  if (sub.blockedCode) {
+    return apiMessage(locale, sub.blockedCode);
   }
 
   const featureError = validateBacktestFeatures(params, sub.tier);
-  if (featureError) return featureError;
+  if (featureError) {
+    return apiMessage(locale, featureError.code, featureError.vars);
+  }
 
   const symbols = params.symbols ?? [];
   const excluded = params.excluded_symbols ?? [];
   const start = params.start_date;
   const end = params.end_date;
-  if (!start || !end) return "Укажите период теста";
+  if (!start || !end) return apiMessage(locale, "PERIOD_REQUIRED");
 
   const planCtx: PlanDateContext = {
     tier: sub.tier,
     registeredAt: sub.registeredAt,
   };
 
-  const catalog = await loadSymbolCatalog();
+  const catalog = (await listSymbolsFromDb()).symbols;
   const coverage = computeSelectedCoverage(symbols, excluded, catalog, planCtx);
   if (!coverage) {
     const window = tierHistoryWindow(planCtx);
-    return `Нет данных для выбранных монет в периоде ${window.from} — ${window.to}`;
+    return apiMessage(locale, "NO_DATA_FOR_COINS", {
+      from: window.from,
+      to: window.to,
+    });
   }
 
-  return validateBacktestDateRange(start, end, coverage);
+  const dateError = validateBacktestDateRange(start, end, coverage);
+  if (dateError) {
+    if (start > end) {
+      return apiMessage(locale, "DATE_START_AFTER_END");
+    }
+    return apiMessage(locale, "DATE_OUT_OF_RANGE", {
+      from: coverage.from,
+      to: coverage.to,
+    });
+  }
+
+  return null;
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { listSymbolsFromDb } from "@/lib/listSymbols";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const result = await listSymbolsFromDb();

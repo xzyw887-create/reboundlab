@@ -10,8 +10,14 @@ services:
       POSTGRES_PASSWORD: reboundlab
       POSTGRES_DB: reboundlab
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ../../.data/postgres:/var/lib/postgresql/data
       - ../../database/schemas:/docker-entrypoint-initdb.d:ro
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=64MB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U reboundlab"]
       interval: 10s

@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from backtester.core.types import Candle
+from backtester.data.timeframe import normalize_timeframe
 
 
 def drop_from_peak_pct(peak: Decimal, price: Decimal) -> Decimal:
@@ -20,19 +21,33 @@ class DropFromPeakTracker:
     """
     Buy when price drops drop_pct from the running peak.
 
-    Before the first trade: peak builds from highs on the chart (no special start buy).
-    After each closed trade: peak resets to exit price, then rises with highs again.
-    Entry fires on 1m when low reaches the drop threshold.
+    1m: peak builds from 1m highs; entry on 1m low reaching threshold.
+    Higher TF: peak builds from closed TF bar highs; entry only on TF bar close.
+
+    After each closed trade: peak resets to exit price, then rises again.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, entry_timeframe: str = "1m") -> None:
+        self.entry_timeframe = normalize_timeframe(entry_timeframe)
         self.peak = Decimal("0")
 
     def reset_to(self, price: Decimal) -> None:
         """Called after a trade closes — start counting from exit price."""
         self.peak = price
 
-    def check_entry(self, candle: Candle, drop_pct: Decimal) -> Decimal | None:
+    def check_entry(
+        self,
+        candle: Candle,
+        drop_pct: Decimal,
+        tf_bar: Candle | None = None,
+    ) -> Decimal | None:
+        if self.entry_timeframe == "1m":
+            return self._check_1m(candle, drop_pct)
+        if tf_bar is None:
+            return None
+        return self._check_tf_close(tf_bar, drop_pct)
+
+    def _check_1m(self, candle: Candle, drop_pct: Decimal) -> Decimal | None:
         if self.peak <= 0:
             # First bar: only establish peak from high — no same-candle entry.
             self.peak = candle.high
@@ -45,6 +60,17 @@ class DropFromPeakTracker:
 
         trigger = entry_trigger_price(self.peak, drop_pct)
         if candle.low <= trigger:
+            return trigger
+        return None
+
+    def _check_tf_close(self, bar: Candle, drop_pct: Decimal) -> Decimal | None:
+        if self.peak <= 0:
+            self.peak = bar.high
+            return None
+
+        self.peak = max(self.peak, bar.high)
+        trigger = entry_trigger_price(self.peak, drop_pct)
+        if bar.low <= trigger:
             return trigger
         return None
 

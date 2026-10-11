@@ -1,0 +1,19 @@
+# Fly.io — публичный сайт + Python (бесплатный лимит)
+# fly.io/app/sign-up → fly auth login → bash scripts/deploy-fly.sh
+
+app = 'reboundlab-demo'
+primary_region = 'sin'
+
+[build]
+  dockerfile = 'deploy/docker/Dockerfile.web'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'

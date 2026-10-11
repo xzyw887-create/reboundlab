@@ -1,4 +1,6 @@
 import type { BacktestParams } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/en";
+import { formatTpl } from "@/lib/i18n";
 import {
   autoTrialsGridKey,
   countTotalCombos,
@@ -67,6 +69,16 @@ export function estimateAutomaticSeconds(
   return loadOverhead + (trials + stage2) * perTrial;
 }
 
+export function formatDuration(seconds: number, t: Dictionary): string {
+  const sec = Math.max(0, Math.round(seconds));
+  if (sec < 60) return formatTpl(t.duration.sec, { n: sec });
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (s === 0) return formatTpl(t.duration.min, { n: m });
+  return formatTpl(t.duration.minSec, { m, s });
+}
+
+/** @deprecated use formatDuration */
 export function formatDurationRu(seconds: number): string {
   const sec = Math.max(0, Math.round(seconds));
   if (sec < 60) return `${sec} сек`;
@@ -80,17 +92,22 @@ export function formatElapsedProgress(
   elapsedSec: number,
   estimatedSec: number,
   trials: number,
+  t: Dictionary,
   totalCombos?: number,
   capped?: boolean
 ): string {
-  const elapsed = formatDurationRu(elapsedSec);
+  const elapsed = formatDuration(elapsedSec, t);
   const eta = Math.max(0, estimatedSec - elapsedSec);
-  const remaining = formatDurationRu(eta);
+  const remaining = formatDuration(eta, t);
   const trialLabel =
     capped && totalCombos && totalCombos > trials
-      ? `${trials} из ${totalCombos}`
+      ? `${trials} / ${totalCombos}`
       : `${trials}`;
-  return `${trialLabel} вариантов · прошло ${elapsed} · осталось ~${remaining}`;
+  return formatTpl(t.duration.progress, {
+    trials: trialLabel,
+    elapsed,
+    remaining,
+  });
 }
 
 const AVG_DROP_PRESETS: Record<number, number[][]> = {

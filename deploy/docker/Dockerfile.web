@@ -22,9 +22,18 @@ ENV NODE_ENV=production
 ENV PROJECT_ROOT=/app
 ENV HOSTNAME=0.0.0.0
 
+# NEXT_PUBLIC_* must exist at build time (baked into client JS)
+ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
+ARG NEXT_PUBLIC_APP_URL=https://backtestpro.ru
+ENV NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=$NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
 RUN npm run web:build
 
-# Railway injects PORT (often 8080) at runtime — do not hardcode 3000
+# Railway injects PORT (usually 8080). Run Next from apps/web where .next lives.
+WORKDIR /app/apps/web
+ENV NEXT_TELEMETRY_DISABLED=1
+
 EXPOSE 8080
 
-CMD ["sh", "-c", "npm run start --workspace=@reboundlab/web -- -H 0.0.0.0 -p ${PORT:-8080}"]
+CMD ["sh", "-c", "exec npx next start -H 0.0.0.0 -p ${PORT:-8080}"]

@@ -419,18 +419,21 @@ def main():
     start_date = data.get("start_date")
     end_date = data.get("end_date")
     use_real_funding = fields.pop("use_real_funding", True)
-    if data.get("max_trials") or data.get("auto_trials"):
-        max_trials = int(data.get("max_trials") or data.get("auto_trials"))
-    else:
-        from backtester.optimizers.grid_search import count_grid_trials
+    if automatic:
+        if data.get("max_trials") or data.get("auto_trials"):
+            max_trials = int(data.get("max_trials") or data.get("auto_trials"))
+        else:
+            from backtester.optimizers.grid_search import count_grid_trials
 
-        info = count_grid_trials(
-            fields,
-            averaging_enabled=bool(data.get("averaging_enabled")),
-            entry_prices_total=int(data.get("entry_prices_total", 3)),
-            max_trials=10**9,
-        )
-        max_trials = max(1, int(info["total_combos"] * 0.1))
+            info = count_grid_trials(
+                fields,
+                averaging_enabled=bool(data.get("averaging_enabled")),
+                entry_prices_total=int(data.get("entry_prices_total", 3)),
+                max_trials=10**9,
+            )
+            max_trials = max(1, int(info["total_combos"] * 0.1))
+    else:
+        max_trials = 1
 
     if len(symbols) > 1 or data.get("mode") == "multi":
         fields["use_real_funding"] = use_real_funding

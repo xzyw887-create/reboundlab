@@ -1,3 +1,4 @@
+import { ApiError } from "@/lib/apiErrors";
 import type { PlanTier } from "@/lib/subscriptionTiers";
 import { featuresForTier } from "@/lib/subscriptionTiers";
 

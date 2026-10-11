@@ -156,6 +156,24 @@ def build_tf_close_map(
     return tf_candles, close_map
 
 
+def build_tf_close_lookup(
+    candles_1m: list[Candle], timeframe: str
+) -> dict[int, Candle]:
+    """Map 1m index at TF bar close -> aggregated TF candle."""
+    from backtester.data.timeframe import normalize_timeframe
+
+    tf = normalize_timeframe(timeframe)
+    if tf == "1m":
+        return {}
+
+    lookup: dict[int, Candle] = {}
+    for bar in resample_candles(candles_1m, tf):
+        idx = tf_close_to_1m_index(bar, tf, candles_1m)
+        if idx is not None:
+            lookup[idx] = bar
+    return lookup
+
+
 def build_entry_slots(
     candles_1m: list[Candle],
     timeframe: str,

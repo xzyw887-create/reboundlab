@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { SubscriptionPlan } from "@/lib/subscriptionTiers";
-import { SUBSCRIPTION_PLANS } from "@/lib/subscriptionTiers";
+import { localizedPlans } from "@/lib/localizedPlans";
+import { useLocale } from "@/lib/i18n";
 
 function FeatureCheck({ included }: { included: boolean }) {
   if (included) {
@@ -51,16 +52,22 @@ function TierCard({
   plan,
   onSelect,
   onPurchase,
+  popularLabel,
+  soonLabel,
 }: {
   plan: SubscriptionPlan;
   onSelect?: (tier: SubscriptionPlan["tier"]) => void;
   onPurchase?: (tier: SubscriptionPlan["tier"]) => void;
+  popularLabel: string;
+  soonLabel: string;
 }) {
   const ctaClass = plan.highlighted
-    ? "btn-primary w-full"
+    ? "btn-primary w-full shrink-0"
     : plan.comingSoon
-      ? "pricing-cta-soon w-full"
-      : "pricing-cta-outline w-full";
+      ? "pricing-cta-soon w-full shrink-0"
+      : "pricing-cta-outline w-full shrink-0";
+
+  const ctaWrap = "mt-6 shrink-0";
 
   return (
     <article
@@ -70,29 +77,39 @@ function TierCard({
       } ${plan.comingSoon ? "pricing-tier--soon" : ""}`}
     >
       {plan.highlighted && (
-        <span className="pricing-badge pricing-badge--popular">Популярный</span>
+        <span className="pricing-badge pricing-badge--popular">{popularLabel}</span>
       )}
       {plan.comingSoon && (
-        <span className="pricing-badge pricing-badge--soon">Скоро</span>
+        <span className="pricing-badge pricing-badge--soon">{soonLabel}</span>
       )}
 
       <div className="pricing-tier-inner">
-        <p className="label-caps text-accent/70">{plan.tagline}</p>
+        <p className="label-caps text-sky-300 mb-3">{plan.tagline}</p>
         <h3 className="text-xl font-bold text-white mt-1 tracking-tight">{plan.name}</h3>
 
         <div className="mt-5 flex items-baseline gap-1.5 flex-wrap">
           <span className="text-4xl font-bold text-white tabular-nums">
-            {plan.priceRubLabel}
+            {plan.priceHeadline ?? plan.priceRubLabel}
           </span>
           {plan.pricePeriod && (
             <span className="text-sm text-muted font-medium">{plan.pricePeriod}</span>
           )}
         </div>
+        {plan.priceBillingLine && (
+          <p className="text-xs text-amber-400/85 mt-1.5 leading-relaxed">
+            {plan.priceBillingLine}
+          </p>
+        )}
         {plan.priceNote && (
           <p className="text-xs text-muted mt-2 leading-relaxed">{plan.priceNote}</p>
         )}
+        {plan.cardBlurb && (
+          <p className="text-xs text-gray-300/90 mt-3 leading-relaxed border border-amber-500/20 bg-amber-950/20 rounded-lg px-3 py-2.5">
+            {plan.cardBlurb}
+          </p>
+        )}
 
-        <ul className="mt-6 space-y-3 flex-1">
+        <ul className="mt-6 space-y-3 flex-1 min-h-0 pb-1">
           {plan.featureItems.map((item) => (
             <li
               key={item.label}
@@ -109,31 +126,39 @@ function TierCard({
         </ul>
 
         {plan.comingSoon ? (
-          <span className={ctaClass}>{plan.cta}</span>
+          <span className={`${ctaWrap} ${ctaClass}`}>{plan.cta}</span>
         ) : onPurchase && (plan.tier === "basic" || plan.tier === "pro") ? (
-          <button
-            type="button"
-            onClick={() => onPurchase(plan.tier)}
-            className={ctaClass}
-          >
-            {plan.cta}
-          </button>
+          <div className={ctaWrap}>
+            <button
+              type="button"
+              onClick={() => onPurchase(plan.tier)}
+              className={ctaClass}
+            >
+              {plan.cta}
+            </button>
+          </div>
         ) : onSelect ? (
-          <button
-            type="button"
-            onClick={() => onSelect(plan.tier)}
-            className={ctaClass}
-          >
-            {plan.cta}
-          </button>
+          <div className={ctaWrap}>
+            <button
+              type="button"
+              onClick={() => onSelect(plan.tier)}
+              className={ctaClass}
+            >
+              {plan.cta}
+            </button>
+          </div>
         ) : plan.tier === "trial" ? (
-          <Link href="/register" className={`${ctaClass} block text-center`}>
-            {plan.cta}
-          </Link>
+          <div className={ctaWrap}>
+            <Link href="/register?next=/app" className={`${ctaClass} block text-center`}>
+              {plan.cta}
+            </Link>
+          </div>
         ) : (
-          <Link href={plan.ctaHref} className={`${ctaClass} block text-center`}>
-            {plan.cta}
-          </Link>
+          <div className={ctaWrap}>
+            <Link href={plan.ctaHref} className={`${ctaClass} block text-center`}>
+              {plan.cta}
+            </Link>
+          </div>
         )}
       </div>
     </article>
@@ -149,6 +174,9 @@ export function PricingTierGrid({
   onPurchase?: (tier: SubscriptionPlan["tier"]) => void;
   compact?: boolean;
 }) {
+  const { t, locale } = useLocale();
+  const plans = localizedPlans(t, locale);
+
   return (
     <div
       className={
@@ -157,12 +185,14 @@ export function PricingTierGrid({
           : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6"
       }
     >
-      {SUBSCRIPTION_PLANS.map((plan) => (
+      {plans.map((plan) => (
         <TierCard
           key={plan.tier}
           plan={plan}
           onSelect={onPlanSelect}
           onPurchase={onPurchase}
+          popularLabel={t.pricingUi.popular}
+          soonLabel={t.pricingUi.comingSoon}
         />
       ))}
     </div>

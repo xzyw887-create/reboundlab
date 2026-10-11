@@ -21,12 +21,17 @@ const FILES = [
   "database/schemas/neon_candles.sql",
   "database/schemas/03_backtest.sql",
   "database/schemas/04_funding_rates.sql",
+  "database/schemas/05_user_runs_auth.sql",
 ];
 
 async function main() {
+  const noSsl =
+    DB_URL.includes("localhost") ||
+    DB_URL.includes("@postgres:") ||
+    process.env.DATABASE_SSL === "0";
   const client = new Client({
     connectionString: DB_URL,
-    ssl: DB_URL.includes("localhost") ? false : { rejectUnauthorized: false },
+    ssl: noSsl ? false : { rejectUnauthorized: false },
   });
   await client.connect();
   console.log("Connected to Neon/Postgres");

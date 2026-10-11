@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
+import { apiMessage } from "@/lib/apiErrors";
+import { localeFromRequest } from "@/lib/apiLocale";
 import { validateBacktestRequest } from "@/lib/validateBacktestRequest";
 
 const PROJECT_ROOT =
@@ -57,9 +59,10 @@ function runBacktest(params: object, signal?: AbortSignal): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const locale = localeFromRequest(req);
   try {
     const params = await req.json();
-    const dateError = await validateBacktestRequest(params);
+    const dateError = await validateBacktestRequest(params, locale);
     if (dateError) {
       return NextResponse.json({ error: dateError }, { status: 403 });
     }

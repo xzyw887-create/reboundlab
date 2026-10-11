@@ -5,13 +5,20 @@ import { useEffect, useState } from "react";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { PricingTierGrid } from "@/components/PricingTierGrid";
 import {
+  localizedPlans,
+  planCheckoutCharge,
+} from "@/lib/localizedPlans";
+import {
   planByTier,
   type PlanTier,
   type SubscriptionPlan,
 } from "@/lib/subscriptionTiers";
+import { apiFetch } from "@/lib/clientFetch";
+import { formatTpl, useLocale } from "@/lib/i18n";
 
 export function PricingWithCheckout() {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const [authReady, setAuthReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
@@ -30,7 +37,7 @@ export function PricingWithCheckout() {
   }, []);
 
   function startCheckout(tier: PlanTier) {
-    const plan = planByTier(tier);
+    const plan = localizedPlans(t, locale).find((p) => p.tier === tier) ?? planByTier(tier);
     if (!plan || plan.comingSoon || tier === "trial") return;
 
     if (!loggedIn) {
@@ -54,13 +61,13 @@ export function PricingWithCheckout() {
         body: JSON.stringify({ tier: checkoutPlan.tier }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка оплаты");
+      if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
 
       setCheckoutPlan(null);
-      setSuccess(`Тариф ${checkoutPlan.name} активирован — открываем аккаунт…`);
+      setSuccess(formatTpl(t.pricingUi.activated, { name: checkoutPlan.name }));
       setTimeout(() => router.push("/account"), 900);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
+      setError(err instanceof Error ? err.message : t.pricingUi.error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +82,7 @@ export function PricingWithCheckout() {
       )}
 
       {!authReady ? (
-        <p className="text-center text-muted text-sm py-10">Загрузка тарифов…</p>
+        <p className="text-center text-muted text-sm py-10">{t.pricingUi.loading}</p>
       ) : (
         <PricingTierGrid onPurchase={startCheckout} />
       )}

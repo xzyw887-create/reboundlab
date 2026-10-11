@@ -13,7 +13,7 @@ export function LegalPageShell({
 }) {
   return (
     <div className="min-h-screen flex flex-col">
-      <SiteHeader variant="minimal" />
+      <SiteHeader />
       <main className="flex-1 landing-container py-10 sm:py-14 max-w-3xl">
         <header className="mb-8 space-y-2">
           <p className="label-caps text-accent">BackTest Pro</p>

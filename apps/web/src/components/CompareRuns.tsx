@@ -2,6 +2,10 @@
 
 import type { SavedRun } from "@/lib/compareRuns";
 import { paramsSummary } from "@/lib/compareRuns";
+import { StrategyCompareColumn, RunSummaryCard } from "@/components/StrategyCompareColumn";
+import { useLocale } from "@/lib/i18n";
+import { closedOnlySummary } from "@/lib/closedOnlySummary";
+import type { Dictionary } from "@/lib/i18n/en";
 
 interface Props {
   slotA: SavedRun | null;
@@ -11,39 +15,111 @@ interface Props {
   onClearA: () => void;
   onClearB: () => void;
   canSave: boolean;
+  compareActive: boolean;
+  onCompare: () => void;
+  onExitCompare: () => void;
+  onResetAll: () => void;
 }
 
 function fmtPct(v: number) {
   return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
-function row(
-  label: string,
-  a: string | number | null | undefined,
-  b: string | number | null | undefined,
-  better?: "higher" | "lower" | null
-) {
-  const aStr = a ?? "—";
-  const bStr = b ?? "—";
-  const aNum = typeof a === "number" ? a : null;
-  const bNum = typeof b === "number" ? b : null;
-  let aClass = "";
-  let bClass = "";
-  if (better && aNum != null && bNum != null && aNum !== bNum) {
-    const aWins = better === "higher" ? aNum > bNum : aNum < bNum;
-    aClass = aWins ? "text-green-400" : "text-muted";
-    bClass = !aWins ? "text-green-400" : "text-muted";
-  }
+function metricRows(run: SavedRun, t: Dictionary) {
+  const s = run.result.summary;
+  const { balance, pnlPct } = closedOnlySummary(s);
+  return [
+    {
+      label: t.compare.resultUsd,
+      value: balance.toFixed(2),
+    },
+    {
+      label: t.compare.profitPct,
+      value: fmtPct(pnlPct),
+    },
+    { label: t.compare.totalTrades, value: String(s.total_trades) },
+    {
+      label: t.compare.closed,
+      value: String(s.closed_trades ?? s.total_trades - s.open_trades),
+    },
+    { label: t.compare.openAtEnd, value: String(s.open_trades) },
+    { label: t.compare.winning, value: String(s.winning_trades) },
+    {
+      label: t.compare.liquidation,
+      value: s.liquidated ? t.compare.yes : t.compare.no,
+    },
+  ];
+}
+
+function StrategyMetricsTable({ run }: { run: SavedRun }) {
+  const { t } = useLocale();
+  const rows = metricRows(run, t);
+
   return (
-    <tr className="border-t border-border/40">
-      <td className="py-2 pr-3 text-muted text-xs">{label}</td>
-      <td className={`py-2 px-2 text-right text-sm font-medium ${aClass || "text-white"}`}>
-        {aStr}
-      </td>
-      <td className={`py-2 pl-2 text-right text-sm font-medium ${bClass || "text-white"}`}>
-        {bStr}
-      </td>
-    </tr>
+    <div className="mt-3 rounded-lg border border-border/40 bg-panel/40 overflow-hidden">
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label} className="border-t border-border/30 first:border-t-0">
+              <td className="py-2 pl-3 pr-2 text-muted text-xs leading-snug">{row.label}</td>
+              <td className="py-2 pr-3 text-right text-sm font-medium text-white tabular-nums whitespace-nowrap">
+                {row.value}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StrategySlotCard({
+  slot,
+  variant,
+  onClear,
+  showMetrics,
+}: {
+  slot: SavedRun | null;
+  variant: "a" | "b";
+  onClear: () => void;
+  showMetrics: boolean;
+}) {
+  const { t } = useLocale();
+  const border = variant === "a" ? "border-accent/30" : "border-sky-500/30";
+  const titleClass = variant === "a" ? "text-accent" : "text-sky-300";
+  const title = variant === "a" ? t.compare.strategyA : t.compare.strategyB;
+
+  return (
+    <div className={`rounded-xl border ${border} p-3 bg-panel-inner h-full`}>
+      <div className="flex justify-between items-center gap-2">
+        <span className={`font-semibold ${titleClass}`}>{title}</span>
+        {slot && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="btn-ghost px-2 py-1 text-xs text-muted hover:text-red-400 hover:border-red-500/40 shrink-0"
+          >
+            {t.compare.cancel}
+          </button>
+        )}
+      </div>
+      {slot ? (
+        <>
+          <p className="text-xs text-muted mt-1">{paramsSummary(slot.params, t)}</p>
+          <p className="text-[10px] text-muted/80 mt-0.5">
+            {slot.params.start_date} — {slot.params.end_date} ·{" "}
+            {slot.params.symbols.map((s) => s.replace("USDT", "")).join(", ")}
+          </p>
+          {showMetrics ? (
+            <StrategyMetricsTable run={slot} />
+          ) : (
+            <RunSummaryCard run={slot} />
+          )}
+        </>
+      ) : (
+        <p className="text-muted text-sm mt-2">{t.compare.empty}</p>
+      )}
+    </div>
   );
 }
 
@@ -55,30 +131,35 @@ export function CompareRuns({
   onClearA,
   onClearB,
   canSave,
+  compareActive,
+  onCompare,
+  onExitCompare,
+  onResetAll,
 }: Props) {
-  const hasCompare = slotA && slotB;
+  const { t } = useLocale();
+  const hasBoth = Boolean(slotA && slotB);
+  const hasAny = Boolean(slotA || slotB);
 
   return (
     <div className="card-pro">
       <div className="card-pro-body space-y-4">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <p className="label-caps text-center sm:text-left">Сравнение</p>
-            <h2 className="font-semibold text-white">Два прогона рядом</h2>
-            <p className="text-xs text-muted mt-1 max-w-xl">
-              Запустите бэктест → «Сохранить A». Поменяйте настройки → снова запустите →
-              «Сохранить B». Пресет — готовый набор цифр одной кнопкой (монеты и даты не
-              меняет).
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+            {hasAny && (
+              <button
+                type="button"
+                onClick={onResetAll}
+                className="btn-ghost text-muted hover:text-red-400 hover:border-red-500/40"
+              >
+                {t.compare.resetAll}
+              </button>
+            )}
             <button
               type="button"
               disabled={!canSave}
               onClick={onSaveA}
               className="btn-ghost disabled:opacity-40"
             >
-              Сохранить A
+              {t.compare.saveA}
             </button>
             <button
               type="button"
@@ -86,120 +167,55 @@ export function CompareRuns({
               onClick={onSaveB}
               className="btn-ghost disabled:opacity-40"
             >
-              Сохранить B
+              {t.compare.saveB}
             </button>
-          </div>
+            {hasBoth && !compareActive && (
+              <button type="button" onClick={onCompare} className="btn-primary px-4 py-2 text-sm">
+                {t.compare.compareBtn}
+              </button>
+            )}
+            {compareActive && (
+              <button type="button" onClick={onExitCompare} className="btn-ghost">
+                {t.compare.cancel}
+              </button>
+            )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div className="rounded-xl border border-border/60 p-3 bg-panel-inner">
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-semibold text-accent">Прогон A</span>
-              {slotA && (
-                <button type="button" onClick={onClearA} className="text-muted hover:text-red-400">
-                  очистить
-                </button>
-              )}
+        {compareActive && hasBoth && slotA && slotB ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+              <StrategySlotCard
+                slot={slotA}
+                variant="a"
+                onClear={onClearA}
+                showMetrics
+              />
+              <StrategySlotCard
+                slot={slotB}
+                variant="b"
+                onClear={onClearB}
+                showMetrics
+              />
             </div>
-            {slotA ? (
-              <>
-                <p className="text-muted">{paramsSummary(slotA.params)}</p>
-                <p className="text-muted/80 mt-1">
-                  {slotA.params.start_date} — {slotA.params.end_date} ·{" "}
-                  {slotA.params.symbols.map((s) => s.replace("USDT", "")).join(", ")}
-                </p>
-              </>
-            ) : (
-              <p className="text-muted">Пусто</p>
-            )}
-          </div>
-          <div className="rounded-xl border border-border/60 p-3 bg-panel-inner">
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-semibold text-sky-300">Прогон B</span>
-              {slotB && (
-                <button type="button" onClick={onClearB} className="text-muted hover:text-red-400">
-                  очистить
-                </button>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+              <StrategyCompareColumn run={slotA} />
+              <StrategyCompareColumn run={slotB} />
             </div>
-            {slotB ? (
-              <>
-                <p className="text-muted">{paramsSummary(slotB.params)}</p>
-                <p className="text-muted/80 mt-1">
-                  {slotB.params.start_date} — {slotB.params.end_date} ·{" "}
-                  {slotB.params.symbols.map((s) => s.replace("USDT", "")).join(", ")}
-                </p>
-              </>
-            ) : (
-              <p className="text-muted">Пусто</p>
-            )}
           </div>
-        </div>
-
-        {hasCompare && (
-          <div className="overflow-x-auto rounded-xl border border-border/40 bg-panel-inner p-2">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="label-caps">
-                  <th className="text-left py-1">Метрика</th>
-                  <th className="text-right py-1 text-accent">A</th>
-                  <th className="text-right py-1 text-sky-300">B</th>
-                </tr>
-              </thead>
-              <tbody>
-                {row(
-                  "Итог ($)",
-                  slotA.result.summary.realized_balance?.toFixed(2) ??
-                    slotA.result.summary.final_balance.toFixed(2),
-                  slotB.result.summary.realized_balance?.toFixed(2) ??
-                    slotB.result.summary.final_balance.toFixed(2),
-                  "higher"
-                )}
-                {row(
-                  "Прибыль %",
-                  fmtPct(
-                    slotA.result.summary.realized_pnl_pct ??
-                      slotA.result.summary.final_pnl_pct
-                  ),
-                  fmtPct(
-                    slotB.result.summary.realized_pnl_pct ??
-                      slotB.result.summary.final_pnl_pct
-                  ),
-                  "higher"
-                )}
-                {row(
-                  "Всего сделок",
-                  slotA.result.summary.total_trades,
-                  slotB.result.summary.total_trades
-                )}
-                {row(
-                  "Закрыто",
-                  slotA.result.summary.closed_trades ??
-                    slotA.result.summary.total_trades -
-                      slotA.result.summary.open_trades,
-                  slotB.result.summary.closed_trades ??
-                    slotB.result.summary.total_trades -
-                      slotB.result.summary.open_trades
-                )}
-                {row(
-                  "Открыто на конец",
-                  slotA.result.summary.open_trades,
-                  slotB.result.summary.open_trades,
-                  "lower"
-                )}
-                {row(
-                  "В плюсе",
-                  slotA.result.summary.winning_trades,
-                  slotB.result.summary.winning_trades,
-                  "higher"
-                )}
-                {row(
-                  "Ликвидация",
-                  slotA.result.summary.liquidated ? "да" : "нет",
-                  slotB.result.summary.liquidated ? "да" : "нет"
-                )}
-              </tbody>
-            </table>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+            <StrategySlotCard
+              slot={slotA}
+              variant="a"
+              onClear={onClearA}
+              showMetrics={false}
+            />
+            <StrategySlotCard
+              slot={slotB}
+              variant="b"
+              onClear={onClearB}
+              showMetrics={false}
+            />
           </div>
         )}
       </div>

@@ -1,0 +1,73 @@
+# Push to main → rsync to VPS → docker compose rebuild web.
+# One-time setup: docs/DEPLOY_FROM_MAC.md § «Автодеплой из GitHub»
+
+name: Deploy production (VPS)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST || '5.63.152.44' }}
+      VPS_USER: ${{ vars.VPS_USER || 'root' }}
+      VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '/opt/reboundlab' }}
+      HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL || 'https://backtestpro.ru/api/health' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require SSH key secret
+        run: |
+          if [ -z "${{ secrets.VPS_SSH_PRIVATE_KEY }}" ]; then
+            echo "::error::Add repository secret VPS_SSH_PRIVATE_KEY (see docs/DEPLOY_FROM_MAC.md)"
+            exit 1
+          fi
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rsync to VPS
+        run: |
+          rsync -avz \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            --exclude node_modules \
+            --exclude .git \
+            --exclude .data \
+            --exclude .env \
+            --exclude 'apps/web/.next' \
+            --exclude .cursor \
+            ./ "${VPS_USER}@${VPS_HOST}:${VPS_DEPLOY_PATH}/"
+
+      - name: Rebuild web container
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" \
+            "cd ${VPS_DEPLOY_PATH} && set -a && source .env && set +a && docker compose -f deploy/docker/docker-compose.prod.yml up -d --build web"
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 36); do
+            if curl -sf "$HEALTH_URL" | grep -q '"ok"'; then
+              echo "Health OK"
+              exit 0
+            fi
+            echo "Waiting for ${HEALTH_URL} ($i/36)…"
+            sleep 10
+          done
+          echo "::warning::Health check did not pass in time (deploy may still be building)"
+          exit 0

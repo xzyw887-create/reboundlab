@@ -1,9 +1,18 @@
 import { Suspense } from "react";
 import { AuthForm } from "@/components/AuthForm";
+import { AuthPageShell } from "@/components/AuthPageShell";
+
+function AuthLoading() {
+  return (
+    <AuthPageShell>
+      <p className="text-muted text-sm">…</p>
+    </AuthPageShell>
+  );
+}
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted">Загрузка…</div>}>
+    <Suspense fallback={<AuthLoading />}>
       <AuthForm mode="login" />
     </Suspense>
   );

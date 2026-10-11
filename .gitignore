@@ -18,6 +18,8 @@ build/
 .env
 .env.local
 .env.*.local
+scripts/demo.env
+/s
 
 # IDE
 .idea/
@@ -26,7 +28,9 @@ build/
 *.swo
 .DS_Store
 
-# Logs
+# Local data
+.data/
+
 logs/
 *.log
 npm-debug.log*

@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PricingWindow } from "@/components/PricingWindow";
+import { BrandLogo } from "@/components/BrandLogo";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StrategyForm } from "@/components/StrategyForm";
 import { PriceChart } from "@/components/PriceChart";
 import { PnlChart } from "@/components/PnlChart";
 import { TradesTable } from "@/components/TradesTable";
+import { TradesOutcomeSummary } from "@/components/TradesOutcomeSummary";
 import { CompareRuns } from "@/components/CompareRuns";
 import { AveragingGridTable } from "@/components/AveragingGridTable";
 import type { BacktestParams, BacktestResult } from "@/lib/types";
 import { TIMEFRAME_OPTIONS } from "@/lib/types";
-import { loadSavedParams, saveParams } from "@/lib/savedParams";
+import { loadSavedParams, saveParams, loadChartTimeframe, saveChartTimeframe } from "@/lib/savedParams";
 import {
   clearCompareSlot,
   loadCompareSlot,
@@ -23,50 +25,35 @@ import { resampleCandles } from "@/lib/resampleCandles";
 import { resolveAutoTrials, autoGridsPayload } from "@/lib/automaticEstimate";
 import { TierGate } from "@/components/TierGate";
 import { featuresForTier, type PlanTier } from "@/lib/subscriptionTiers";
+import { isLocalTestMode, LOCAL_TEST_TIER } from "@/lib/localTestMode";
 import {
   clampParamsToPlan,
   loadSelectedPlan,
+  planDisplayName,
   saveSelectedPlan,
 } from "@/lib/selectedPlan";
+import { useLocale, formatTpl } from "@/lib/i18n";
+import { closedOnlySummary } from "@/lib/closedOnlySummary";
+import { BacktestReport } from "@/components/BacktestReport";
+import { RunHistoryPanel, type SavedBacktestRun } from "@/components/RunHistoryPanel";
+import { openTradesExportPage } from "@/lib/exportTradesCsv";
+import { paramsSummary } from "@/lib/compareRuns";
+import { DEFAULT_BACKTEST_PARAMS } from "@/lib/defaultParams";
+import { apiFetch } from "@/lib/clientFetch";
+
+type AppTab = "calculator" | "history";
 
 interface ClientAuthUser {
   id: string;
   email: string;
   planTier: PlanTier;
   trialExpired: boolean;
+  subscriptionExpired: boolean;
   expiresAt: string | null;
   registeredAt: string;
 }
 
-const TEST_START = "2026-06-12";
-const TEST_END = "2026-07-11";
-
-const DEFAULT_PARAMS: BacktestParams = {
-  mode: "single",
-  symbols: ["BTCUSDT"],
-  excluded_symbols: [],
-  deposit: 100,
-  entry_pct: 10,
-  leverage: 5,
-  drop_pct: 1,
-  timeframe: "1m",
-  tp: 2,
-  trailing: false,
-  trailing_activation: 2,
-  trailing_callback: 2,
-  averaging_enabled: true,
-  entry_prices_total: 3,
-  averaging_drops: [5, 10, 15],
-  averaging_margins: [10, 10, 10],
-  max_open_trades: null,
-  entry_pct_split: false,
-  entry_pct_regular: 10,
-  entry_pct_meme: 5,
-  data_source: "db",
-  start_date: TEST_START,
-  end_date: TEST_END,
-  auto_two_stage: true,
-};
+const DEFAULT_PARAMS = DEFAULT_BACKTEST_PARAMS;
 
 const TF_SECONDS: Record<string, number> = {
   "1m": 60,
@@ -91,10 +78,7 @@ function snapToCandle(
     }
   }
 
-  const closest = candles.reduce((a, b) =>
-    Math.abs(b.time - unix) < Math.abs(a.time - unix) ? b : a
-  );
-  return Math.abs(closest.time - unix) <= period ? closest.time : null;
+  return null;
 }
 
 function buildMarkers(
@@ -182,27 +166,46 @@ export default function HomePage() {
   const [chartTimeframe, setChartTimeframe] = useState<string>(DEFAULT_PARAMS.timeframe);
   const [compareA, setCompareA] = useState<SavedRun | null>(null);
   const [compareB, setCompareB] = useState<SavedRun | null>(null);
-  const [pricingOpen, setPricingOpen] = useState(false);
+  const [compareViewActive, setCompareViewActive] = useState(false);
   const [planTier, setPlanTier] = useState<PlanTier>("trial");
   const [authUser, setAuthUser] = useState<ClientAuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [appTab, setAppTab] = useState<AppTab>("calculator");
+  const [historyRuns, setHistoryRuns] = useState<SavedBacktestRun[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const authUserRef = useRef<ClientAuthUser | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  const { t, locale } = useLocale();
   const effectiveTier = useMemo(() => {
-    if (authUser) {
-      return authUser.trialExpired ? "trial" : authUser.planTier;
-    }
-    return planTier;
-  }, [authUser, planTier]);
+    if (!authUser) return "trial";
+    if (authUser.trialExpired) return "trial";
+    if (isLocalTestMode()) return LOCAL_TEST_TIER;
+    return authUser.planTier;
+  }, [authUser]);
+
+  const isGuest = !authUser;
+  const accessBlocked =
+    isGuest ||
+    !!authUser?.trialExpired ||
+    !!authUser?.subscriptionExpired;
 
   const tierFeatures = useMemo(() => featuresForTier(effectiveTier), [effectiveTier]);
+
+  useEffect(() => {
+    authUserRef.current = authUser;
+  }, [authUser]);
 
   const applyParams = (next: BacktestParams) => {
     setParams(clampParamsToPlan(next, effectiveTier));
   };
 
+  const goPricing = () => router.push("/pricing");
+
   const selectPlan = (tier: PlanTier) => {
     if (authUser) {
-      setPricingOpen(true);
+      goPricing();
       return;
     }
     setPlanTier(tier);
@@ -211,9 +214,107 @@ export default function HomePage() {
   };
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await apiFetch("/api/auth/logout", { method: "POST" });
     setAuthUser(null);
+    setHistoryRuns([]);
     router.refresh();
+  }
+
+  async function loadHistory() {
+    const user = authUserRef.current;
+    if (!user) {
+      setHistoryRuns([]);
+      return;
+    }
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const res = await apiFetch("/api/runs");
+      const data = await res.json();
+      if (!res.ok) {
+        setHistoryError(data.error ?? t.history.saveFailed);
+        setHistoryRuns([]);
+        return;
+      }
+      setHistoryRuns(data.runs ?? []);
+    } catch {
+      setHistoryRuns([]);
+      setHistoryError(t.history.saveFailed);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function saveRunToCloud(data: BacktestResult, runParams: BacktestParams) {
+    if (!authUserRef.current) return;
+    try {
+      const res = await apiFetch("/api/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label: paramsSummary(runParams, t),
+          params: runParams,
+          summary: {
+            initial_deposit: data.summary.initial_deposit,
+            final_balance: data.summary.final_balance,
+            final_pnl_pct: data.summary.final_pnl_pct,
+            realized_pnl_pct: data.summary.realized_pnl_pct,
+            total_trades: data.summary.total_trades,
+            symbols: data.summary.symbols,
+            mode: data.mode,
+            start_date: runParams.start_date,
+            end_date: runParams.end_date,
+          },
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setHistoryError(body.error ?? t.history.saveFailed);
+        return;
+      }
+      setHistoryError(null);
+      if (body.id) {
+        const saved: SavedBacktestRun = {
+          id: body.id,
+          label: paramsSummary(runParams, t),
+          params: runParams,
+          summary: {
+            initial_deposit: data.summary.initial_deposit,
+            final_balance: data.summary.final_balance,
+            final_pnl_pct: data.summary.final_pnl_pct,
+            realized_pnl_pct: data.summary.realized_pnl_pct,
+            total_trades: data.summary.total_trades,
+            symbols: data.summary.symbols,
+            mode: data.mode,
+            start_date: runParams.start_date,
+            end_date: runParams.end_date,
+          },
+          created_at: body.created_at ?? new Date().toISOString(),
+        };
+        setHistoryRuns((prev) => [saved, ...prev.filter((r) => r.id !== saved.id)]);
+      } else {
+        void loadHistory();
+      }
+    } catch {
+      setHistoryError(t.history.saveFailed);
+    }
+  }
+
+  function loadRunFromHistory(run: SavedBacktestRun) {
+    const payload = clampParamsToPlan(
+      { ...run.params, automatic: false, timeframe: "1m" },
+      effectiveTier
+    );
+    setParams(payload);
+    saveParams(payload);
+    setAppTab("calculator");
+    setSelectedTrade(null);
+    void runBacktest(undefined, { skipHistorySave: true, baseParams: payload });
+  }
+
+  async function deleteHistoryRun(id: string) {
+    await apiFetch(`/api/runs?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    setHistoryRuns((prev) => prev.filter((r) => r.id !== id));
   }
 
   useEffect(() => {
@@ -222,28 +323,55 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (appTab === "history" && authUser) {
+      loadHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appTab, authUser?.id]);
+
+  useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/me")
+    apiFetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : { user: null }))
       .then((data) => {
         if (cancelled) return;
         const user = data.user as ClientAuthUser | null;
-        setAuthUser(user);
-        const tier = user?.planTier ?? loadSelectedPlan();
-        setPlanTier(tier);
         const saved = loadSavedParams(DEFAULT_PARAMS);
-        setParams(clampParamsToPlan(saved, user ? (user.trialExpired ? "trial" : user.planTier) : tier));
-        setChartTimeframe(saved.timeframe);
+        if (user) {
+          setAuthUser(user);
+          authUserRef.current = user;
+          const tier = user.trialExpired ? "trial" : user.planTier;
+          setPlanTier(tier);
+          setParams(
+            clampParamsToPlan(
+              saved,
+              user.trialExpired ? "trial" : user.planTier
+            )
+          );
+        } else {
+          setAuthUser(null);
+          authUserRef.current = null;
+          const previewTier = loadSelectedPlan();
+          setPlanTier(previewTier);
+          setParams(clampParamsToPlan(saved, previewTier));
+        }
+        setChartTimeframe(loadChartTimeframe(saved.timeframe ?? DEFAULT_PARAMS.timeframe));
         if (saved.symbols[0]) setChartSymbol(saved.symbols[0]);
         setParamsReady(true);
+        setAuthChecked(true);
       })
       .catch(() => {
         if (cancelled) return;
-        const tier = loadSelectedPlan();
-        setPlanTier(tier);
         const saved = loadSavedParams(DEFAULT_PARAMS);
-        setParams(clampParamsToPlan(saved, tier));
+        setAuthUser(null);
+        authUserRef.current = null;
+        const previewTier = loadSelectedPlan();
+        setPlanTier(previewTier);
+        setParams(clampParamsToPlan(saved, previewTier));
+        setChartTimeframe(loadChartTimeframe(saved.timeframe ?? DEFAULT_PARAMS.timeframe));
+        if (saved.symbols[0]) setChartSymbol(saved.symbols[0]);
         setParamsReady(true);
+        setAuthChecked(true);
       });
     return () => {
       cancelled = true;
@@ -255,15 +383,32 @@ export default function HomePage() {
     saveParams(params);
   }, [params, paramsReady]);
 
-  async function runBacktest(overrides?: Partial<BacktestParams>) {
-    if (authUser?.trialExpired) {
-      setError("Пробный период закончился — выберите тариф Basic или Pro");
-      setPricingOpen(true);
+  useEffect(() => {
+    if (!paramsReady) return;
+    setParams((p) => clampParamsToPlan(p, effectiveTier));
+  }, [effectiveTier, paramsReady]);
+
+  async function runBacktest(
+    overrides?: Partial<BacktestParams>,
+    options?: { skipHistorySave?: boolean; baseParams?: BacktestParams }
+  ) {
+    if (isGuest) {
+      setError(t.app.guestRunBlocked);
+      return;
+    }
+    if (authUser?.trialExpired || authUser?.subscriptionExpired) {
+      setError(
+        authUser.subscriptionExpired
+          ? t.app.subscriptionExpired + " — " + t.app.choosePlan
+          : t.app.trialExpired + " — " + t.app.choosePlan
+      );
+      goPricing();
       return;
     }
     abortRef.current?.abort();
+    const base = options?.baseParams ?? params;
     const payload = clampParamsToPlan(
-      { ...params, ...overrides, automatic: false },
+      { ...base, ...overrides, automatic: false, timeframe: "1m" },
       effectiveTier
     );
     setLoading(true);
@@ -272,23 +417,30 @@ export default function HomePage() {
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const res = await fetch("/api/backtest", {
+      const res = await apiFetch("/api/backtest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         signal: ac.signal,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка расчёта");
+      if (!res.ok) throw new Error(data.error || t.auth.errorGeneric);
       setResult(data);
       setSelectedTrade(null);
-      if (overrides) setParams(payload);
-      saveParams(overrides ? payload : params);
+      if (overrides || options?.baseParams) {
+        setParams(payload);
+        saveParams(payload);
+      } else {
+        saveParams(params);
+      }
+      if (!options?.skipHistorySave) {
+        void saveRunToCloud(data, payload);
+      }
       const firstSym = data.summary.symbols?.[0] ?? payload.symbols[0] ?? "BTCUSDT";
       setChartSymbol(firstSym);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(e instanceof Error ? e.message : t.auth.errorGeneric);
     } finally {
       setLoading(false);
       setOptimizing(false);
@@ -305,6 +457,19 @@ export default function HomePage() {
   }
 
   async function runAutomatic() {
+    if (isGuest) {
+      setError(t.app.guestRunBlocked);
+      return;
+    }
+    if (authUser?.trialExpired || authUser?.subscriptionExpired) {
+      setError(
+        authUser.subscriptionExpired
+          ? t.app.subscriptionExpired + " — " + t.app.choosePlan
+          : t.app.trialExpired + " — " + t.app.choosePlan
+      );
+      goPricing();
+      return;
+    }
     abortRef.current?.abort();
     const { trials } = resolveAutoTrials(params);
     const payload = {
@@ -312,6 +477,7 @@ export default function HomePage() {
       automatic: true,
       auto_trials: trials,
       auto_grids: autoGridsPayload(params),
+      timeframe: "1m",
     };
     setLoading(true);
     setOptimizing(true);
@@ -319,16 +485,17 @@ export default function HomePage() {
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const res = await fetch("/api/backtest", {
+      const res = await apiFetch("/api/backtest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         signal: ac.signal,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка оптимизации");
+      if (!res.ok) throw new Error(data.error || t.auth.errorGeneric);
       setResult(data);
       setSelectedTrade(null);
+      void saveRunToCloud(data, params);
       if (data.optimization?.best_params) {
         const bp = data.optimization.best_params;
         const updated: BacktestParams = {
@@ -353,7 +520,7 @@ export default function HomePage() {
       setChartSymbol(firstSym);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(e instanceof Error ? e.message : t.auth.errorGeneric);
     } finally {
       setLoading(false);
       setOptimizing(false);
@@ -371,8 +538,8 @@ export default function HomePage() {
   function saveToCompare(slot: "A" | "B") {
     if (!result) return;
     const run: SavedRun = {
-      label: `Прогон ${slot}`,
-      params: { ...params },
+      label: slot === "A" ? t.compare.strategyA : t.compare.strategyB,
+      params: { ...params, timeframe: chartTimeframe },
       result,
       savedAt: new Date().toISOString(),
     };
@@ -387,9 +554,15 @@ export default function HomePage() {
     else setCompareB(null);
   }
 
+  function resetCompare() {
+    clearCompare("A");
+    clearCompare("B");
+    setCompareViewActive(false);
+  }
+
   function onChartTimeframeChange(tf: string) {
     setChartTimeframe(tf);
-    setParams((p) => ({ ...p, timeframe: tf }));
+    saveChartTimeframe(tf);
   }
 
   const s = result?.summary;
@@ -413,39 +586,43 @@ export default function HomePage() {
     [result, chartSymbol, chartCandles, chartTimeframe]
   );
   const tableTrades = result?.trades ?? [];
-  const displayBalance = s?.realized_balance ?? s?.final_balance ?? 0;
-  const displayPnlPct = s?.realized_pnl_pct ?? s?.final_pnl_pct ?? 0;
+  const closedSummary = s ? closedOnlySummary(s) : null;
+  const displayBalance = closedSummary?.balance ?? 0;
+  const displayPnlPct = closedSummary?.pnlPct ?? 0;
   const hasOpenAtEnd = (s?.open_trades ?? 0) > 0;
-  const closedTrades =
-    s?.closed_trades ?? (s ? s.total_trades - s.open_trades : 0);
-  const closedNetPnl = s?.closed_net_pnl_usd ?? 0;
-  const openNetPnl = s?.open_net_pnl_usd ?? s?.last_open_trade?.net_pnl_usd ?? 0;
   const optRealized =
     result?.optimization?.best_realized_balance ??
     result?.optimization?.best_final_balance;
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted text-sm">
+        …
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
       <header className="border-b border-border/60 bg-panel/80 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="logo-box">BP</div>
+            <BrandLogo size="md" decorative />
             <div>
               <h1 className="title-gradient">BackTest Pro</h1>
               <p className="label-caps mt-0.5">
-                Crypto Backtesting Platform · Binance ·{" "}
-                {result?.mode === "multi" ? "Multi-Coin" : "Single"}
+                {t.app.platformTag} ·{" "}
+                {result?.mode === "multi" ? t.app.modeBadgeMulti : t.app.modeBadgeSingle}
               </p>
             </div>
           </Link>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setPricingOpen(true)}
-              className="text-xs sm:text-sm text-accent hover:text-accent/80 font-medium whitespace-nowrap border border-accent/30 rounded-lg px-3 py-1.5 bg-accent/5 hover:bg-accent/10 transition-colors"
-            >
-              Тарифы
-            </button>
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
+            <LanguageSwitcher />
+            {authUser && (
+              <span className="hidden sm:inline-flex pill-tag text-[10px]">
+                {planDisplayName(effectiveTier)}
+              </span>
+            )}
             {authUser ? (
               <div className="hidden sm:flex items-center gap-2 text-xs">
                 <Link
@@ -459,90 +636,103 @@ export default function HomePage() {
                   onClick={logout}
                   className="text-muted hover:text-accent"
                 >
-                  Выйти
+                  {t.nav.logout}
                 </button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="text-xs sm:text-sm text-muted hover:text-accent whitespace-nowrap"
-              >
-                Войти
-              </Link>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="hidden sm:inline-flex pill-tag text-[10px] text-accent/90 border-accent/30">
+                  {t.landing.demo}
+                </span>
+                <Link href="/login?next=/app" className="btn-primary site-cta-sm text-xs">
+                  {t.nav.signup}
+                </Link>
+              </div>
             )}
-          {s && (
-            <div className="flex gap-5 text-sm">
-              <div className="text-right">
-                <p className="label-caps">
-                  {hasOpenAtEnd ? "Счёт (закрытые)" : "Счёт"}
-                </p>
-                <p
-                  className={`font-semibold ${
-                    displayPnlPct >= 0 ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  ${displayBalance.toFixed(2)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="label-caps">
-                  {hasOpenAtEnd ? "PnL (закрытые)" : "PnL"}
-                </p>
-                <p
-                  className={`font-semibold ${
-                    displayPnlPct >= 0 ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  {displayPnlPct >= 0 ? "+" : ""}
-                  {displayPnlPct.toFixed(2)}%
-                </p>
-              </div>
-              <div className="text-right hidden sm:block">
-                <p className="label-caps">Сделок</p>
-                <p className="font-semibold text-white">
-                  {s.total_trades}
-                  <span className="text-muted text-xs font-normal ml-1">
-                    (закр. {closedTrades}
-                    {(s.open_trades ?? 0) > 0 ? ` · откр. ${s.open_trades}` : ""})
-                  </span>
-                </p>
-              </div>
-            </div>
-          )}
           </div>
         </div>
       </header>
 
-      {authUser?.trialExpired && (
-        <div className="bg-amber-950/40 border-b border-amber-600/40 px-4 py-2 text-center text-sm text-amber-200">
-          Пробный период закончился.{" "}
-          <button
-            type="button"
-            onClick={() => setPricingOpen(true)}
-            className="text-accent underline"
-          >
-            Выберите тариф Basic или Pro
-          </button>
-          {" "}(оплата скоро)
-        </div>
-      )}
-
-      {!authUser && paramsReady && (
-        <div className="bg-accent/5 border-b border-accent/20 px-4 py-2 text-center text-xs text-muted">
-          Демо-режим — тариф только для просмотра.{" "}
-          <Link href="/register" className="text-accent hover:underline">
-            Регистрация — 3 дня бесплатно
+      {isGuest && (
+        <div className="bg-sky-950/50 border-b border-sky-700/40 px-4 py-2.5 text-center text-sm text-sky-100">
+          {t.app.demoBanner}{" "}
+          <Link href="/login?next=/app" className="text-accent font-medium underline">
+            {t.nav.signup}
           </Link>
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <aside className="lg:col-span-3">
-          <div className="card-pro sticky top-24">
-            <div className="card-pro-body">
-              <p className="label-caps text-center mb-1">Стратегия</p>
+      {(authUser?.trialExpired || authUser?.subscriptionExpired) && (
+        <div className="bg-amber-950/40 border-b border-amber-600/40 px-4 py-2 text-center text-sm text-amber-200">
+          {authUser.subscriptionExpired
+            ? t.app.subscriptionExpired
+            : t.app.trialExpired}{" "}
+          <Link href="/pricing" className="text-accent underline">
+            {t.app.choosePlan}
+          </Link>
+        </div>
+      )}
+
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-4">
+        <div className="flex gap-1 border-b border-border/60 pb-0">
+          <button
+            type="button"
+            onClick={() => setAppTab("calculator")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              appTab === "calculator"
+                ? "border-accent text-white"
+                : "border-transparent text-muted hover:text-gray-200"
+            }`}
+          >
+            {t.app.tabCalculator}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAppTab("history")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              appTab === "history"
+                ? "border-accent text-white"
+                : "border-transparent text-muted hover:text-gray-200"
+            }`}
+          >
+            {t.app.tabHistory}
+          </button>
+        </div>
+
+        {historyError && (
+          <p className="text-sm text-red-300 bg-red-950/40 border border-red-800/50 rounded-xl p-3">
+            {historyError}
+          </p>
+        )}
+
+        {appTab === "history" ? (
+          <div className="max-w-3xl mx-auto w-full">
+            {!authUser ? (
+              <div className="card-pro">
+                <div className="card-pro-body text-center py-10 space-y-3">
+                  <p className="text-sm text-muted">{t.history.loginRequired}</p>
+                  <Link href="/login?next=/app" className="btn-primary inline-block px-6">
+                    {t.nav.signup}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <RunHistoryPanel
+                runs={historyRuns}
+                loading={historyLoading}
+                onLoad={loadRunFromHistory}
+                onDelete={deleteHistoryRun}
+              />
+            )}
+          </div>
+        ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <aside className="lg:col-span-3 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto lg:overscroll-contain pr-1">
+          <div className="card-pro">
+            <div className="card-pro-body pb-4">
+              <p className="label-caps text-center mb-1">{t.app.strategy}</p>
               <h2 className="font-semibold text-center text-white mb-4">
-                Параметры бэктеста
+                {t.app.paramsTitle}
               </h2>
             <StrategyForm
               params={params}
@@ -553,14 +743,18 @@ export default function HomePage() {
               loading={loading}
               optimizing={optimizing}
               planTier={effectiveTier}
-              onOpenPricing={() => setPricingOpen(true)}
+              onOpenPricing={goPricing}
               authEmail={authUser?.email}
               authRegisteredAt={authUser?.registeredAt ?? null}
-              runBlocked={!!authUser?.trialExpired}
+              runBlocked={accessBlocked}
               runBlockedReason={
-                authUser?.trialExpired
-                  ? "Пробный период закончился — выберите тариф"
-                  : null
+                isGuest
+                  ? t.app.guestRunBlocked
+                  : authUser?.subscriptionExpired
+                    ? t.app.subscriptionBlocked
+                    : authUser?.trialExpired
+                      ? t.app.trialBlocked
+                      : null
               }
             />
             {error && (
@@ -573,18 +767,37 @@ export default function HomePage() {
         </aside>
 
         <div className="lg:col-span-9 space-y-6">
-          {result?.optimization && (
+          <TierGate allowed={tierFeatures.compareRuns} title={t.compare.title} requiredPlan="Basic">
+            <CompareRuns
+              slotA={compareA}
+              slotB={compareB}
+              canSave={!!result && !loading && tierFeatures.compareRuns}
+              compareActive={compareViewActive}
+              onCompare={() => setCompareViewActive(true)}
+              onExitCompare={() => setCompareViewActive(false)}
+              onSaveA={() => saveToCompare("A")}
+              onSaveB={() => saveToCompare("B")}
+              onClearA={() => clearCompare("A")}
+              onClearB={() => clearCompare("B")}
+              onResetAll={resetCompare}
+            />
+          </TierGate>
+
+          {!compareViewActive && result?.optimization && (
             <div className="card-pro border-accent/30">
               <div className="card-pro-body">
-                <p className="font-semibold text-accent">Automatic — лучшие параметры</p>
+                <p className="font-semibold text-accent">{t.app.automaticBest}</p>
                 <p className="text-sm text-muted mt-1">
-                  Падение {result.optimization.best_params.drop_pct}% · TP{" "}
-                  {result.optimization.best_params.tp}%
-                  {result.optimization.best_params.trailing ? " · трейлинг" : ""}
+                  {formatTpl(t.strategy.auto.optDropTp, {
+                    drop: result.optimization.best_params.drop_pct,
+                    tp: result.optimization.best_params.tp,
+                  })}
+                  {result.optimization.best_params.trailing
+                    ? t.strategy.auto.optTrailing
+                    : ""}
                   {result.optimization.best_params.excluded_symbols?.length ? (
                     <>
-                      {" "}
-                      · исключены:{" "}
+                      {t.strategy.auto.optExcluded}{" "}
                       {result.optimization.best_params.excluded_symbols
                         .map((s) => s.replace("USDT", ""))
                         .join(", ")}
@@ -646,176 +859,84 @@ export default function HomePage() {
             </div>
           )}
 
-          {s?.liquidated && s.liquidated_symbol && (
+          {!compareViewActive && s?.liquidated && s.liquidated_symbol && (
             <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 flex items-center justify-between">
               <div>
                 <p className="text-red-300 font-medium">
-                  Ликвидация по {s.liquidated_symbol.replace("USDT", "")}
+                  {t.app.liquidated} {s.liquidated_symbol.replace("USDT", "")}
                 </p>
-                <p className="text-sm text-red-400/80 mt-1">
-                  Весь депозит сгорел. Можно исключить монету и пересчитать.
-                </p>
+                <p className="text-sm text-red-400/80 mt-1">{t.app.liquidatedHint}</p>
               </div>
               <button
                 onClick={() => excludeAndRerun(s.liquidated_symbol!)}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium whitespace-nowrap"
               >
-                Исключить и пересчитать
+                {t.app.excludeRerun}
               </button>
             </div>
           )}
 
-          {s && (
-            <div
-              className={`card-pro ${
-                hasOpenAtEnd ? "border-gold/30" : ""
-              }`}
-            >
-              <div className={`card-pro-body ${hasOpenAtEnd ? "bg-gold/5" : ""}`}>
-              <p
-                className={`font-medium text-sm ${
-                  hasOpenAtEnd ? "text-gold" : "text-gray-100"
-                }`}
-              >
-                Сделок: {s.total_trades} · Закрыто: {closedTrades}
-                {(s.open_trades ?? 0) > 0 && ` · Открыто: ${s.open_trades}`}
-                {s.winning_trades > 0 && ` · В плюсе: ${s.winning_trades}`}
-              </p>
-              {hasOpenAtEnd ? (
-                <div className="mt-3 space-y-2 text-sm">
-                  <p className="text-gray-200">
-                    <span className="text-gold font-semibold">Результат закрытых сделок:</span>{" "}
-                    <span
-                      className={
-                        closedNetPnl >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"
-                      }
-                    >
-                      {closedNetPnl >= 0 ? "+" : ""}
-                      ${closedNetPnl.toFixed(2)}
-                    </span>
-                    <span className="text-muted">
-                      {" "}
-                      · счёт ${displayBalance.toFixed(2)} ({displayPnlPct >= 0 ? "+" : ""}
-                      {displayPnlPct.toFixed(2)}%)
-                    </span>
-                  </p>
-                  {s.last_open_trade && (
-                    <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
-                      <p className="text-gold font-semibold text-xs uppercase tracking-wide">
-                        Активная сделка на конец периода
-                      </p>
-                      <p className="text-gray-200 mt-1">
-                        {s.last_open_trade.symbol.replace("USDT", "")}
-                        {s.last_open_trade.avg_count != null && s.last_open_trade.avg_count > 0
-                          ? ` · усреднений: ${s.last_open_trade.avg_count}`
-                          : ""}
-                      </p>
-                      <p className="text-muted text-xs mt-1">
-                        Средняя ${s.last_open_trade.avg_price?.toFixed(2) ?? "—"}
-                        {s.last_open_trade.mark_price != null && (
-                          <> · цена на конец ${s.last_open_trade.mark_price.toFixed(2)}</>
-                        )}
-                        {s.last_open_trade.target_exit_price != null && (
-                          <> · TP ${s.last_open_trade.target_exit_price.toFixed(2)}</>
-                        )}
-                      </p>
-                      <p className="mt-2">
-                        Нереализованный PnL:{" "}
-                        <span
-                          className={
-                            openNetPnl >= 0
-                              ? "text-green-400 font-semibold"
-                              : "text-red-400 font-semibold"
-                          }
-                        >
-                          {openNetPnl >= 0 ? "+" : ""}${openNetPnl.toFixed(2)}
-                        </span>
-                        <span className="text-muted text-xs block mt-1">
-                          Полный счёт с открытой позицией: ${s.final_balance.toFixed(2)} (
-                          {s.final_pnl_pct >= 0 ? "+" : ""}
-                          {s.final_pnl_pct.toFixed(2)}%)
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted mt-1">
-                  Все сделки закрыты — итог в шапке отражает полный результат периода.
-                </p>
-              )}
-              </div>
-            </div>
-          )}
-
-          {s && (
+          {!compareViewActive && s && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: "Депозит", value: `$${s.initial_deposit}`, color: "text-white" },
+                { label: t.app.deposit, value: `$${s.initial_deposit}`, color: "text-white" },
                 {
-                  label: hasOpenAtEnd ? "Итог (закрытые)" : "Итог",
+                  label: t.app.result,
                   value: `$${displayBalance.toFixed(2)}`,
                   color: displayPnlPct >= 0 ? "text-green-400" : "text-red-400",
                 },
                 {
-                  label: hasOpenAtEnd ? "Прибыль (закрытые)" : "Прибыль",
+                  label: t.app.profit,
                   value: `${displayPnlPct >= 0 ? "+" : ""}${displayPnlPct.toFixed(2)}%`,
                   color: displayPnlPct >= 0 ? "text-green-400" : "text-red-400",
                 },
                 {
-                  label: "Монеты",
+                  label: t.app.coinsLabel,
                   value: s.symbols.map((x) => x.replace("USDT", "")).join(" + "),
                   color: "text-accent",
                 },
               ].map((card) => (
                 <div key={card.label} className="stat-card">
-                  <p className="label-caps">{card.label}</p>
-                  <p className={`text-xl font-bold mt-1 ${card.color}`}>{card.value}</p>
+                  <p className="label-caps truncate">{card.label}</p>
+                  <p className={`text-xl font-bold mt-2 tabular-nums ${card.color}`}>{card.value}</p>
                 </div>
               ))}
             </div>
           )}
 
-          <TierGate allowed={tierFeatures.compareRuns} requiredPlan="Basic">
-            <CompareRuns
-              slotA={compareA}
-              slotB={compareB}
-              canSave={!!result && !loading && tierFeatures.compareRuns}
-              onSaveA={() => saveToCompare("A")}
-              onSaveB={() => saveToCompare("B")}
-              onClearA={() => clearCompare("A")}
-              onClearB={() => clearCompare("B")}
-            />
-          </TierGate>
-
+          {!compareViewActive && (
+          <>
           <div className="card-pro">
             <div className="card-pro-body">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div>
-                <p className="label-caps">График</p>
-                <h2 className="font-semibold text-white">
-                  Цена + сделки
-                {result ? (
-                  <span className="text-accent font-normal text-sm ml-2">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <p className="label-caps">{t.app.chart}</p>
+                {result && (
+                  <span className="text-accent font-semibold text-sm truncate">
                     {chartSymbol.replace("USDT", "")}
                   </span>
-                ) : null}
-                </h2>
+                )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {result && (
-                  <select
-                    value={chartTimeframe}
-                    onChange={(e) => onChartTimeframeChange(e.target.value)}
-                    className="bg-surface border border-border rounded-lg px-3 py-1 text-xs text-gray-300"
-                    aria-label="Таймфрейм графика"
-                  >
-                    {TIMEFRAME_OPTIONS.map((tf) => (
-                      <option key={tf.value} value={tf.value}>
-                        {tf.label}
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      value={chartTimeframe}
+                      onChange={(e) => onChartTimeframeChange(e.target.value)}
+                      className="bg-surface border border-border rounded-lg px-3 py-1 text-xs text-gray-300"
+                      aria-label={t.app.chart}
+                      title={t.app.chartTimeframeHint}
+                    >
+                      {TIMEFRAME_OPTIONS.map((tf) => (
+                        <option key={tf.value} value={tf.value}>
+                          {tf.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-gray-500 hidden sm:inline">
+                      {t.app.chartTimeframeHint}
+                    </span>
+                  </>
                 )}
                 {result && result.mode === "multi" && s?.symbols && (
                   <div className="flex gap-1">
@@ -845,7 +966,7 @@ export default function HomePage() {
               />
             ) : (
               <div className="h-[360px] flex items-center justify-center text-muted text-sm border border-border/60 rounded-xl bg-panel-inner">
-                Нажмите «Запустить бэктест»
+                {t.app.runBacktestHint}
               </div>
             )}
             </div>
@@ -860,7 +981,6 @@ export default function HomePage() {
                 periodStart={result.meta?.start_date ?? params.start_date}
                 periodEnd={result.meta?.end_date ?? params.end_date}
                 height={130}
-                excludesOpenTrade={s?.excludes_open_trade}
               />
               </div>
             </div>
@@ -869,82 +989,58 @@ export default function HomePage() {
           {result && (
             <div className="card-pro">
               <div className="card-pro-body">
-              <p className="label-caps mb-1">Справка</p>
-              <h2 className="font-semibold text-white mb-2">Как работает алгоритм</h2>
-              <div className="text-xs text-muted space-y-2 leading-relaxed">
-                <p>
-                  <span className="text-green-400 font-medium">Покупка</span> — каждую минуту
-                  смотрим цены на графике. Запоминаем пик (максимум). Покупаем, когда цена
-                  упала на {params.drop_pct}% от пика. Первая сделка — те же правила, без
-                  «авто-входа» в начале периода.
-                </p>
-                <p>
-                  После продажи пик сбрасывается на цену выхода. Если цена выросла — пик
-                  поднимается. Падение считается от пика, не обязательно от цены продажи.
-                </p>
-                <p>
-                  <span className="text-red-400 font-medium">Продажа (TP)</span> — когда цена
-                  выросла на {params.tp}% от средней (при {params.leverage}x плече ≈{" "}
-                  {(params.tp * params.leverage).toFixed(0)}% на маржу). Ликвидация — когда
-                  equity ≤ maintenance; после ликвидации баланс $0, торговля останавливается.
-                </p>
-                {params.averaging_enabled && (
-                  <p>
-                    <span className="text-yellow-400 font-medium">Усреднение</span> — до{" "}
-                    {params.entry_prices_total} цен входа. Падение для докупки — % от{" "}
-                    <span className="text-gray-300">первого входа</span>, маржа у каждого
-                    усреднения своя.
-                  </p>
-                )}
-                <p>
-                  Вход: {params.entry_pct}% банка × {params.leverage}x ={" "}
-                  {(params.entry_pct * params.leverage).toFixed(0)}% банка в позиции
-                  (сложный процент). Одна сделка на монету одновременно.
-                </p>
+              <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                <h2 className="font-semibold text-white">{t.app.tradesTable}</h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {s && <TradesOutcomeSummary summary={s} />}
+                  <button
+                    type="button"
+                    className="btn-ghost px-3 py-1 text-xs shrink-0"
+                    onClick={() =>
+                      openTradesExportPage(tableTrades, {
+                        filename: `backtest_${params.start_date}_${params.end_date}.csv`,
+                        periodStart: params.start_date,
+                        periodEnd: params.end_date,
+                        locale,
+                      })
+                    }
+                  >
+                    {t.app.exportCsv}
+                  </button>
+                </div>
               </div>
-              </div>
-            </div>
-          )}
-
-          {result && (
-            <div className="card-pro">
-              <div className="card-pro-body">
-              <p className="label-caps mb-1">Сделки</p>
-              <h2 className="font-semibold text-white mb-3">Таблица сделок</h2>
               <TradesTable
                 trades={tableTrades}
+                showAveraging={params.averaging_enabled}
                 account={
                   s
                     ? {
                         initialDeposit: s.initial_deposit,
-                        displayEquity: displayBalance,
-                        displayPnlPct,
-                        fullEquity: hasOpenAtEnd ? s.final_balance : undefined,
-                        fullPnlPct: hasOpenAtEnd ? s.final_pnl_pct : undefined,
-                        closedNetPnlUsd: s.closed_net_pnl_usd,
+                        closedNetPnlUsd:
+                          closedSummary?.pnlUsd ?? s.closed_net_pnl_usd,
                         openNetPnlUsd: s.open_net_pnl_usd,
-                        openTrades: s.open_trades,
                       }
                     : undefined
                 }
                 selected={selectedTrade}
                 onSelect={setSelectedTrade}
               />
+              <BacktestReport result={result} />
               </div>
             </div>
           )}
 
+          </>
+          )}
+
           <p className="text-xs text-muted text-center pb-4">
-            Не является финансовой рекомендацией. Результаты основаны на исторических данных.
+            {t.app.disclaimer}
           </p>
         </div>
+        </div>
+        )}
       </main>
 
-      <PricingWindow
-        open={pricingOpen}
-        onClose={() => setPricingOpen(false)}
-        onSelectPlan={selectPlan}
-      />
     </div>
   );
 }

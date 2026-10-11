@@ -1,6 +1,25 @@
 import type { BacktestParams } from "@/lib/types";
 
 const STORAGE_KEY = "reboundlab-backtest-params-v2";
+const CHART_TF_KEY = "reboundlab-chart-timeframe";
+
+export function loadChartTimeframe(fallback = "1m"): string {
+  if (typeof window === "undefined") return fallback;
+  try {
+    return localStorage.getItem(CHART_TF_KEY) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function saveChartTimeframe(timeframe: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CHART_TF_KEY, timeframe);
+  } catch {
+    // ignore
+  }
+}
 
 export function loadSavedParams(fallback: BacktestParams): BacktestParams {
   if (typeof window === "undefined") return fallback;

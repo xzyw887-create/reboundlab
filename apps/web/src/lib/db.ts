@@ -9,7 +9,11 @@ declare global {
   var pgPool: Pool | undefined;
 }
 
-const isLocalDb = DATABASE_URL.includes("localhost");
+/** Docker Compose / VPS: postgres service has no TLS on :5432 */
+const isLocalDb =
+  DATABASE_URL.includes("localhost") ||
+  DATABASE_URL.includes("@postgres:") ||
+  process.env.DATABASE_SSL === "0";
 
 export function getPool(): Pool {
   if (!global.pgPool) {
@@ -37,5 +41,31 @@ export async function query<T = unknown>(
       );
     }
     throw err;
+  }
+}
+
+/** Один клиент — для SET session + тяжёлого запроса (375 монет). */
+export async function queryWithSession<T = unknown>(
+  sessionSql: string[],
+  text: string,
+  params?: unknown[]
+): Promise<T[]> {
+  const client = await getPool().connect();
+  try {
+    for (const sql of sessionSql) {
+      await client.query(sql);
+    }
+    const res = await client.query(text, params);
+    return res.rows as T[];
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("ECONNREFUSED") || msg.includes("connect")) {
+      throw new Error(
+        "База данных не запущена. В терминале: cd ~/Projects/reboundlab && npm run docker:up"
+      );
+    }
+    throw err;
+  } finally {
+    client.release();
   }
 }

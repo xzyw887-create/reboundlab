@@ -31,6 +31,7 @@ from backtester.core.types import (
 from backtester.strategies.averaging import should_average
 from backtester.strategies.entry import DropFromPeakTracker
 from backtester.strategies.trailing import TrailingStop
+from backtester.data.resample import build_tf_close_lookup
 
 
 @dataclass
@@ -91,11 +92,12 @@ class SingleCoinSimulator:
         pnl_curve: list[PnlSnapshot] = []
         liquidated = False
         liquidated_at: datetime | None = None
-        entry_tracker = DropFromPeakTracker()
+        entry_tracker = DropFromPeakTracker(p.entry_timeframe)
+        tf_close_lookup = build_tf_close_lookup(candles, p.entry_timeframe)
         last_realized = initial
         schedule = funding_schedule if p.use_real_funding else None
 
-        for candle in candles:
+        for i, candle in enumerate(candles):
             if liquidated:
                 break
 
@@ -120,7 +122,10 @@ class SingleCoinSimulator:
 
             if position is None and not liquidated:
                 equity = cash
-                entry_price = entry_tracker.check_entry(candle, p.drop_pct)
+                tf_bar = tf_close_lookup.get(i)
+                entry_price = entry_tracker.check_entry(
+                    candle, p.drop_pct, tf_bar=tf_bar
+                )
                 if entry_price is not None:
                     position, cash = self._open_at_price(
                         candle, cash, equity, entry_price

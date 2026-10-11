@@ -1,5 +1,5 @@
 import type { SymbolInfo } from "@/lib/types";
-import { query } from "@/lib/db";
+import { queryWithSession } from "@/lib/db";
 
 interface SymbolRow {
   symbol: string;
@@ -12,31 +12,73 @@ interface SymbolRow {
   candle_count: string;
 }
 
-export async function listSymbolsFromDb(): Promise<{
+type SymbolsResult = {
   symbols: SymbolInfo[];
   coverage: { from: string; to: string; loaded_pairs: number } | null;
   total_active: number;
   total_loaded: number;
-}> {
-  const rows = await query<SymbolRow>(
-    `
+};
+
+const CACHE_TTL_MS = 10 * 60 * 1000;
+
+declare global {
+  // eslint-disable-next-line no-var
+  var symbolsCache: { at: number; data: SymbolsResult } | undefined;
+  // eslint-disable-next-line no-var
+  var symbolsInflight: Promise<SymbolsResult> | undefined;
+}
+
+const SYMBOLS_SQL = `
+  WITH agg AS (
     SELECT
-      tp.symbol,
-      tp.base_asset,
-      tp.is_active,
-      tp.history_from,
-      tp.min_history_days,
-      MIN(c.open_time) AS data_from,
-      MAX(c.open_time) AS data_to,
-      COUNT(c.open_time) AS candle_count
-    FROM market.trading_pairs tp
-    JOIN market.exchanges e ON e.id = tp.exchange_id
-    LEFT JOIN market.candles c
-      ON c.pair_id = tp.id AND c.timeframe = '1m'
-    WHERE e.code = 'binance' AND tp.is_active = TRUE
-    GROUP BY tp.id, tp.symbol, tp.base_asset, tp.is_active, tp.history_from, tp.min_history_days
-    ORDER BY COUNT(c.open_time) DESC NULLS LAST, tp.symbol ASC
-    `
+      pair_id,
+      MIN(open_time) AS data_from,
+      MAX(open_time) AS data_to,
+      COUNT(*)::bigint AS candle_count
+    FROM market.candles
+    WHERE timeframe = '1m'
+    GROUP BY pair_id
+  )
+  SELECT
+    tp.symbol,
+    tp.base_asset,
+    tp.is_active,
+    tp.history_from,
+    tp.min_history_days,
+    agg.data_from,
+    agg.data_to,
+    agg.candle_count::text AS candle_count
+  FROM market.trading_pairs tp
+  JOIN market.exchanges e ON e.id = tp.exchange_id
+  LEFT JOIN agg ON agg.pair_id = tp.id
+  WHERE e.code = 'binance' AND tp.is_active = TRUE
+  ORDER BY agg.candle_count DESC NULLS LAST, tp.symbol ASC
+`;
+
+export async function listSymbolsFromDb(): Promise<SymbolsResult> {
+  const cached = global.symbolsCache;
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  if (global.symbolsInflight) {
+    return global.symbolsInflight;
+  }
+
+  global.symbolsInflight = loadSymbolsFromDb().finally(() => {
+    global.symbolsInflight = undefined;
+  });
+
+  return global.symbolsInflight;
+}
+
+async function loadSymbolsFromDb(): Promise<SymbolsResult> {
+  const rows = await queryWithSession<SymbolRow>(
+    [
+      "SET work_mem = '128MB'",
+      "SET statement_timeout = '120s'",
+    ],
+    SYMBOLS_SQL
   );
 
   const symbols: SymbolInfo[] = rows.map((row) => {
@@ -70,10 +112,13 @@ export async function listSymbolsFromDb(): Promise<{
     };
   }
 
-  return {
+  const result: SymbolsResult = {
     symbols,
     coverage,
     total_active: symbols.length,
     total_loaded: loaded.length,
   };
+
+  global.symbolsCache = { at: Date.now(), data: result };
+  return result;
 }

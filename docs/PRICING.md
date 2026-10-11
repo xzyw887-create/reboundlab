@@ -7,9 +7,9 @@
 | Тариф | UI | БД (`core.plans.tier`) | Цена | Статус |
 |-------|-----|------------------------|------|--------|
 | Пробный | Trial | `trial` | 0 ₽ | **3 дня** бесплатно |
-| Basic | Basic | `starter` | **990 ₽/мес** | Продажа MVP |
-| Pro | Pro | `pro` | **2 990 ₽/мес** | Продажа MVP |
-| Automatic | Automatic | `automatic` | ~7 990 ₽/мес | **Скоро** |
+| Basic | Basic | `starter` | **490 ₽/мес** | Продажа MVP |
+| Pro | Pro | `pro` | **1 990 ₽/мес** | Продажа MVP |
+| Automatic | Automatic | `automatic` | **4 990 ₽/мес** | **Скоро** |
 
 Код тарифов: `apps/web/src/lib/subscriptionTiers.ts`  
 Страница: `/pricing`  
@@ -73,8 +73,8 @@ BackTest Pro считает сделки с комиссией 0.05% и funding 
 | Место | Текст |
 |-------|-------|
 | Trial | «Попробовать бесплатно» |
-| Basic | «Выбрать Basic — 990 ₽/мес» |
-| Pro | «Выбрать Pro — 2 990 ₽/мес» |
+| Basic | «Выбрать Basic — 490 ₽/мес» |
+| Pro | «Выбрать Pro — 1 990 ₽/мес» |
 | Automatic | «Скоро — в waitlist» |
 | Hero secondary | «Смотреть тарифы» → `/pricing` |
 

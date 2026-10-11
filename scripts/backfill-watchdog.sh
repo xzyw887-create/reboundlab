@@ -36,6 +36,25 @@ shallow_pairs() {
     ) s;" 2>/dev/null | tr -d '[:space:]' || echo "999"
 }
 
+ensure_postgres() {
+  local h
+  h="$(docker inspect reboundlab-postgres --format '{{.State.Health.Status}}' 2>/dev/null || echo missing)"
+  if [ "$h" = "healthy" ]; then
+    return 0
+  fi
+  echo "Postgres status=$h — restart docker $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LOG"
+  (cd "$ROOT" && npm run docker:up >> "$LOG" 2>&1) || true
+  sleep 20
+}
+
+check_disk() {
+  local avail_gb
+  avail_gb="$(df -g /System/Volumes/Data 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [ -n "$avail_gb" ] && [ "$avail_gb" -lt 15 ]; then
+    echo "WARNING low disk: ${avail_gb}GB free $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LOG"
+  fi
+}
+
 start_backfill() {
   echo "Launch historical.py $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LOG"
   echo "=== Backfill start $(date -u +%Y-%m-%dT%H:%M:%SZ) days=$DAYS ===" >> "$DATA_LOG"
@@ -50,6 +69,9 @@ timed_out() {
 }
 
 while ! timed_out; do
+  ensure_postgres
+  check_disk
+
   if pgrep -f "historical.py 0 $DAYS" >/dev/null 2>&1; then
     sleep 120
     continue

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "WATCHPACK_POLLING=true next dev -p 3000",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint"
@@ -13,6 +13,7 @@
     "jose": "^6.2.3",
     "lightweight-charts": "^5.2.0",
     "next": "^14.2.0",
+    "nodemailer": "^6.9.16",
     "pg": "^8.22.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"

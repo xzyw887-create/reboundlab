@@ -10,11 +10,13 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { apiFetch } from "@/lib/clientFetch";
 import { useLocale } from "@/lib/i18n";
 import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
+import { userAccountLoginLabel } from "@/lib/userDisplayName";
 
 interface AccountUser {
   email: string;
   telegramId?: number | null;
   telegramUsername?: string | null;
+  telegramDisplayName?: string | null;
   planTier: PlanTier;
   trialExpired: boolean;
   subscriptionExpired: boolean;
@@ -67,11 +69,7 @@ export default function AccountPage() {
   }
 
   const plan = planByTier(user.planTier);
-  const loginDisplay = user.telegramUsername
-    ? `@${user.telegramUsername}`
-    : user.telegramId && isTelegramPlaceholderEmail(user.email)
-      ? `${a.loginViaTelegram} · ID ${user.telegramId}`
-      : user.email;
+  const loginDisplay = userAccountLoginLabel(user, a.loginViaTelegram);
 
   const loginLabel =
     user.telegramId && isTelegramPlaceholderEmail(user.email) ? a.loginMethod : a.email;

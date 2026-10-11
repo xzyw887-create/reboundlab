@@ -7,6 +7,9 @@ ALTER TABLE core.users
   ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(255);
 
 ALTER TABLE core.users
+  ADD COLUMN IF NOT EXISTS telegram_display_name VARCHAR(255);
+
+ALTER TABLE core.users
   ALTER COLUMN password_hash DROP NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_users_telegram_id

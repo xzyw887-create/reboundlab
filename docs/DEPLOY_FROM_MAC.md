@@ -33,7 +33,13 @@ ssh -i ~/.ssh/backtestpro_deploy root@5.63.152.44 'echo ok'
 
 | Имя | Тип | Значение |
 |-----|-----|----------|
-| `VPS_SSH_PRIVATE_KEY` | Secret | содержимое файла `~/.ssh/backtestpro_deploy` (весь блок `BEGIN…END`) |
+| `VPS_SSH_PRIVATE_KEY` | Secret | приватный ключ (см. команду ниже — надёжнее, чем копировать руками) |
+
+**Залить секрет с Mac одной командой** (после `gh auth login`):
+
+```bash
+gh secret set VPS_SSH_PRIVATE_KEY < ~/.ssh/backtestpro_deploy
+```
 
 Опционально **Variables** (если другой сервер/путь):
 

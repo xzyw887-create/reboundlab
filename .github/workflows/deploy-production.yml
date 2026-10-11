@@ -35,10 +35,13 @@ jobs:
           fi
 
       - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Rsync to VPS

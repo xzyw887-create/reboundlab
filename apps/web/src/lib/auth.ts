@@ -8,7 +8,10 @@ import { query } from "@/lib/db";
 import { canonicalEmail } from "@/lib/emailCanonical";
 import { isDisposableEmail } from "@/lib/disposableEmailDomains";
 import { ensureBillingSchema } from "@/lib/ensureBillingSchema";
-import { telegramPlaceholderEmail } from "@/lib/telegramIdentity";
+import {
+  telegramDisplayNameFromPayload,
+  telegramPlaceholderEmail,
+} from "@/lib/telegramIdentity";
 import {
   ensureTelegramAuthSchema,
   type TelegramWidgetAuth,
@@ -40,6 +43,7 @@ export interface AuthUser {
   billingAnchorDay: number | null;
   telegramId: number | null;
   telegramUsername: string | null;
+  telegramDisplayName: string | null;
 }
 
 export function mapDbTierToUi(dbTier: string): PlanTier {
@@ -119,9 +123,10 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     created_at: Date;
     telegram_id: string | null;
     telegram_username: string | null;
+    telegram_display_name: string | null;
   }>(
     `SELECT u.id, u.email, p.tier, s.status, s.expires_at, s.billing_anchor_day, u.created_at,
-            u.telegram_id, u.telegram_username
+            u.telegram_id, u.telegram_username, u.telegram_display_name
      FROM core.users u
      JOIN core.subscriptions s ON s.user_id = u.id
      JOIN core.plans p ON p.id = s.plan_id
@@ -153,6 +158,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     billingAnchorDay: row.billing_anchor_day,
     telegramId: row.telegram_id != null ? Number(row.telegram_id) : null,
     telegramUsername: row.telegram_username,
+    telegramDisplayName: row.telegram_display_name,
   };
 }
 
@@ -230,7 +236,8 @@ export async function loginOrRegisterViaTelegram(
   await ensureTelegramAuthSchema();
 
   const tgId = payload.id;
-  const username = payload.username?.replace(/^@/, "") ?? null;
+  const username = payload.username?.replace(/^@/, "").trim() || null;
+  const displayName = telegramDisplayNameFromPayload(payload);
 
   const existing = await query<{ id: string; email: string }>(
     `SELECT id, email FROM core.users
@@ -240,12 +247,14 @@ export async function loginOrRegisterViaTelegram(
   );
 
   if (existing[0]) {
-    if (username) {
-      await query(
-        `UPDATE core.users SET telegram_username = $1, updated_at = NOW() WHERE id = $2`,
-        [username, existing[0].id]
-      );
-    }
+    await query(
+      `UPDATE core.users
+       SET telegram_username = COALESCE($1, telegram_username),
+           telegram_display_name = COALESCE($2, telegram_display_name),
+           updated_at = NOW()
+       WHERE id = $3`,
+      [username, displayName, existing[0].id]
+    );
     await recordTelegramTrialClaim(tgId, existing[0].id);
     const token = await createSessionToken(existing[0].id, existing[0].email);
     setSessionCookie(token);
@@ -258,10 +267,10 @@ export async function loginOrRegisterViaTelegram(
 
   const email = telegramPlaceholderEmail(tgId);
   const inserted = await query<{ id: string }>(
-    `INSERT INTO core.users (email, password_hash, telegram_id, telegram_username)
-     VALUES ($1, NULL, $2, $3)
+    `INSERT INTO core.users (email, password_hash, telegram_id, telegram_username, telegram_display_name)
+     VALUES ($1, NULL, $2, $3, $4)
      RETURNING id`,
-    [email, tgId, username]
+    [email, tgId, username, displayName]
   );
   const userId = inserted[0]?.id;
   if (!userId) throw new ApiError("REGISTER_FAILED");
@@ -306,6 +315,7 @@ export function authUserJson(user: AuthUser) {
     billingAnchorDay: user.billingAnchorDay,
     telegramId: user.telegramId,
     telegramUsername: user.telegramUsername,
+    telegramDisplayName: user.telegramDisplayName,
   };
 }
 

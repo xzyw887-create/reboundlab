@@ -8,6 +8,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuthSession } from "@/lib/useAuthSession";
 import { planDisplayName } from "@/lib/selectedPlan";
 import { useLocale } from "@/lib/i18n";
+import { userDisplayLabel } from "@/lib/userDisplayName";
 
 interface Props {
   /** @deprecated Все публичные страницы показывают одно меню; prop игнорируется. */
@@ -29,6 +30,10 @@ export function SiteHeader(_props?: Props) {
   }, [mobileOpen]);
 
   const closeMobile = () => setMobileOpen(false);
+
+  const userLabel = user
+    ? userDisplayLabel(user, t.accountPage.loginViaTelegram)
+    : "";
 
   const navLinks = (
     <>
@@ -113,7 +118,7 @@ export function SiteHeader(_props?: Props) {
                 href="/account"
                 className="site-nav-link hidden sm:inline truncate max-w-[160px]"
               >
-                {user.email}
+                {userLabel}
               </Link>
               {isTrialExpired ? (
                 <Link href="/pricing" className="btn-primary site-cta-sm">
@@ -189,7 +194,7 @@ export function SiteHeader(_props?: Props) {
                     className="block text-sm text-muted truncate py-1"
                     onClick={closeMobile}
                   >
-                    {user.email}
+                    {userLabel}
                   </Link>
                   {isTrialExpired ? (
                     <Link

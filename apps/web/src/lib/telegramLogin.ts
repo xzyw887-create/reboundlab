@@ -25,6 +25,10 @@ export async function ensureTelegramAuthSchema(): Promise<void> {
   `);
   await query(`
     ALTER TABLE core.users
+    ADD COLUMN IF NOT EXISTS telegram_display_name VARCHAR(255)
+  `);
+  await query(`
+    ALTER TABLE core.users
     ALTER COLUMN password_hash DROP NOT NULL
   `);
   schemaEnsured = true;

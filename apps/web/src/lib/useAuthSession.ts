@@ -7,6 +7,9 @@ import type { PlanTier } from "@/lib/subscriptionTiers";
 export interface SessionUser {
   id: string;
   email: string;
+  telegramId?: number | null;
+  telegramUsername?: string | null;
+  telegramDisplayName?: string | null;
   planTier: PlanTier;
   trialExpired: boolean;
   expiresAt: string | null;

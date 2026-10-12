@@ -154,7 +154,7 @@ export const ru: Dictionary = {
     strategy: "Стратегия",
     paramsTitle: "Параметры бэктеста",
     plan: "Тариф",
-    demoBanner: "Демо-режим — можно настроить параметры. Чтобы запускать прогоны,",
+    demoBanner: "Демо-режим — можно настроить параметры. Чтобы запускать бэктесты,",
     guestRunBlocked: tc.guestRunBlocked,
     trialExpired: "Пробный период закончился.",
     subscriptionExpired: "Подписка закончилась.",
@@ -376,7 +376,7 @@ export const ru: Dictionary = {
     run: "Запустить бэктест",
     running: "Считаем…",
     cancel: "Отмена",
-    runBlocked: "Прогон недоступен",
+    runBlocked: "Бэктест недоступен",
     automaticSoon: "Automatic — скоро",
     automaticSoonHint:
       "Под ваш депозит, риск, число параллельных сделок и цель в % — подбор drop, TP, трейлинга и усреднений на выбранных монетах и периоде.",

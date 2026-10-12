@@ -8,7 +8,6 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuthSession } from "@/lib/useAuthSession";
 import { planDisplayName } from "@/lib/selectedPlan";
 import { useLocale } from "@/lib/i18n";
-import { userDisplayLabel } from "@/lib/userDisplayName";
 
 interface Props {
   /** @deprecated Все публичные страницы показывают одно меню; prop игнорируется. */
@@ -17,7 +16,7 @@ interface Props {
 
 export function SiteHeader(_props?: Props) {
   const { t } = useLocale();
-  const { user, loading, isGuest, isPaid, isTrialExpired } = useAuthSession();
+  const { user, loading, isGuest, isTrialExpired } = useAuthSession();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -30,10 +29,6 @@ export function SiteHeader(_props?: Props) {
   }, [mobileOpen]);
 
   const closeMobile = () => setMobileOpen(false);
-
-  const userLabel = user
-    ? userDisplayLabel(user, t.accountPage.loginViaTelegram)
-    : "";
 
   const siteMenuLinks = [
     { href: "/how-it-works", label: t.nav.howItWorks },
@@ -96,16 +91,12 @@ export function SiteHeader(_props?: Props) {
           )}
           {!loading && user && (
             <>
-              {isPaid && (
-                <span className="hidden sm:inline-flex pill-tag text-[10px]">
-                  {planDisplayName(user.planTier)}
-                </span>
-              )}
               <Link
                 href="/account"
-                className="site-nav-link hidden sm:inline truncate max-w-[160px]"
+                className="pill-tag text-[10px] hover:border-accent/50 transition-colors"
+                title={t.nav.account}
               >
-                {userLabel}
+                {planDisplayName(user.planTier)}
               </Link>
               {isTrialExpired && (
                 <Link href="/pricing" className="btn-primary site-cta-sm">
@@ -118,6 +109,15 @@ export function SiteHeader(_props?: Props) {
 
         <div className="flex items-center gap-2 md:hidden shrink-0">
           <LanguageSwitcher />
+          {!loading && user && (
+            <Link
+              href="/account"
+              className="pill-tag text-[10px] hover:border-accent/50 transition-colors"
+              title={t.nav.account}
+            >
+              {planDisplayName(user.planTier)}
+            </Link>
+          )}
           {!loading && isGuest && (
             <AppLink href="/login?next=/app" className="btn-primary site-cta-sm text-xs">
               {t.nav.login}
@@ -175,10 +175,10 @@ export function SiteHeader(_props?: Props) {
                 <>
                   <Link
                     href="/account"
-                    className="block text-sm text-muted truncate py-1"
+                    className="pill-tag text-[10px] inline-flex w-fit mb-2"
                     onClick={closeMobile}
                   >
-                    {userLabel}
+                    {planDisplayName(user.planTier)}
                   </Link>
                   {isTrialExpired && (
                     <Link

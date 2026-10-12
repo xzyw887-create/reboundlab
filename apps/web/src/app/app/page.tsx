@@ -46,6 +46,9 @@ type AppTab = "calculator" | "history";
 interface ClientAuthUser {
   id: string;
   email: string;
+  telegramId?: number | null;
+  telegramUsername?: string | null;
+  telegramDisplayName?: string | null;
   planTier: PlanTier;
   trialExpired: boolean;
   subscriptionExpired: boolean;
@@ -618,23 +621,19 @@ export default function HomePage() {
           </Link>
           <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
             <LanguageSwitcher />
-            {authUser && (
-              <span className="hidden sm:inline-flex pill-tag text-[10px]">
-                {planDisplayName(effectiveTier)}
-              </span>
-            )}
             {authUser ? (
-              <div className="hidden sm:flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs">
                 <Link
                   href="/account"
-                  className="text-muted hover:text-accent truncate max-w-[140px]"
+                  className="pill-tag text-[10px] hover:border-accent/50 transition-colors"
+                  title={t.nav.account}
                 >
-                  {authUser.email}
+                  {planDisplayName(effectiveTier)}
                 </Link>
                 <button
                   type="button"
                   onClick={logout}
-                  className="text-muted hover:text-accent"
+                  className="text-muted hover:text-accent whitespace-nowrap"
                 >
                   {t.nav.logout}
                 </button>

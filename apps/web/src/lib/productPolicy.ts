@@ -100,7 +100,7 @@ export function trialCopy(locale: PolicyLocale): TrialCopyBundle {
       pricingLeadTrialPart: `${d} бесплатно, затем оплата — доступ сразу в аккаунте. Платёж по карте подключаем.`,
       subscriptionFlowText: `Регистрация → ${d} бесплатно → Basic или Pro в аккаунте. Без «лицензий на ПО» — просто доступ к терминалу.`,
       stepRegisterText: `${d} бесплатно, без карты`,
-      guestRunBlocked: `Зарегистрируйтесь — ${d} бесплатного доступа к прогонам.`,
+      guestRunBlocked: `Зарегистрируйтесь — ${d} бесплатного доступа, чтобы запускать бэктесты.`,
       registerSubtitle: `${d} пробного доступа — без карты`,
       signupCta: `Зарегистрироваться — ${d} бесплатно`,
       trialFaqA: `Да. После регистрации — ${d} бесплатного доступа без карты, затем Basic или Pro.`,

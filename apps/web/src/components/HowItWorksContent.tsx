@@ -38,7 +38,7 @@ export function HowItWorksContent() {
       <div className="flex flex-wrap gap-3 mt-8 not-prose">
         {isGuest && (
           <>
-            <Link href="/register?next=/app" className="btn-primary px-5 py-2.5 text-sm">
+            <Link href="/login?next=/app" className="btn-primary px-5 py-2.5 text-sm">
               {t.howItWorks.ctaTrial}
             </Link>
           </>

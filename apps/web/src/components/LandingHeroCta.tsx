@@ -19,9 +19,12 @@ export function LandingHeroCta() {
     return (
       <>
         <div className="flex flex-wrap gap-3">
-          <AppLink href="/register?next=/app" className="btn-primary px-6">
+          <AppLink href="/login?next=/app" className="btn-primary px-6">
             {t.landing.ctaTrial}
           </AppLink>
+          <Link href="/pricing" className="landing-btn-outline px-6">
+            {t.nav.pricing}
+          </Link>
         </div>
         <p className="text-xs text-muted">{t.landing.trialNote}</p>
       </>
@@ -43,16 +46,13 @@ export function LandingHeroCta() {
 
   return (
     <>
-      <div className="flex flex-wrap gap-3">
-        <AppLink href="/app" className="btn-primary px-6">
-          {t.landing.ctaCalculator}
-        </AppLink>
-        {isPaid && (
+      {isPaid && (
+        <div className="flex flex-wrap gap-3">
           <Link href="/account" className="landing-btn-outline px-6">
             {t.nav.account}
           </Link>
-        )}
-      </div>
+        </div>
+      )}
       <p className="text-xs text-muted">
         {isPaid && user
           ? formatTpl(t.landing.planActive, {

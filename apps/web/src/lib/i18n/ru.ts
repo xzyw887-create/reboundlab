@@ -1,4 +1,7 @@
+import { trialCopy } from "../productPolicy";
 import type { Dictionary } from "./en";
+
+const tc = trialCopy("ru");
 
 export const ru: Dictionary = {
   brand: {
@@ -20,7 +23,7 @@ export const ru: Dictionary = {
     closeMenu: "Закрыть меню",
   },
   landing: {
-    heroLabel: "BackTest Pro",
+    heroLabel: "Binance USDT-M · минутные свечи",
     heroTitle: "Бэктест стратегий",
     heroTitleAccent: " на крипто-фьючерсах",
     heroLead:
@@ -34,10 +37,10 @@ export const ru: Dictionary = {
     ],
     whyDisclaimer:
       "Расчёты на исторических данных. Не является инвестиционной рекомендацией.",
-    ctaTrial: "Начать — 1 день бесплатно",
+    ctaTrial: tc.ctaTrial,
     ctaCalculator: "Открыть терминал",
     ctaChoosePlan: "Выбрать тариф",
-    trialNote: "1 день после регистрации · Без карты",
+    trialNote: tc.trialNote,
     planActive: "Ваш тариф: {plan}",
     trialActiveNote: "Пробный период активен — полный доступ к терминалу",
     trialActiveUntil: "Пробный период до {date}",
@@ -50,11 +53,56 @@ export const ru: Dictionary = {
     },
     featuresTitle: "Всё для проверки стратегии",
     featuresLabel: "Возможности",
+    productShowcase: {
+      label: "Продукт",
+      title: "Что вы получите после бэктеста в терминале",
+      lead:
+        "Не абстрактный «AI-бэктест», а конкретный отчёт: сделки на графике, таблица, сравнение запусков и кривая PnL — как в рабочем терминале.",
+      ctaTerminal: "Открыть терминал",
+      ctaHow: "Как это работает",
+      quickNavLabel: "Разделы сайта",
+      slides: [
+        {
+          eyebrow: "График",
+          title: "Свечи, входы и выходы на одном экране",
+          body:
+            "Каждая сделка привязана ко времени: видно, где стратегия зашла, где вышла и как вела себя цена между точками — без ручного разбора тысяч баров.",
+        },
+        {
+          eyebrow: "Сделки",
+          title: "Таблица результатов с комиссией и funding",
+          body:
+            "Полный список сделок: монета, вход, выход, PnL и статус. Удобно сверять логику бота и экспортировать в CSV.",
+        },
+        {
+          eyebrow: "Сравнение",
+          title: "Два запуска рядом — A и B",
+          body:
+            "Сохраните настройки, измените один параметр и сравните % доходности, просадку и число сделок. Так отбирают рабочий вариант, а не «красивый на бумаге».",
+        },
+        {
+          eyebrow: "Отчёт",
+          title: "PnL, equity и сводка риска",
+          body:
+            "Кривая капитала, ключевые метрики и итог по закрытым сделкам — то, что вы реально увидите, когда нажмёте «Запустить бэктест» в терминале.",
+        },
+      ],
+      mocks: {
+        chartCaption: "Входы и выходы на том же графике, что и в терминале",
+        markersLabel: "точек",
+        tradesTitle: "Таблица сделок",
+        tradesClosedSuffix: "закр.",
+        runA: "Запуск A",
+        runB: "Запуск B",
+        metricTrades: "Сделок",
+        metricDd: "Макс. DD",
+        metricWin: "Win",
+      },
+    },
     stepsLabel: "С чего начать",
     pricingLabel: "Подписка",
     pricingTitle: "Basic и Pro",
-    pricingLead:
-      "1 день бесплатно, затем оплата — доступ сразу в аккаунте. Платёж по карте подключаем.",
+    pricingLead: tc.pricingLeadTrialPart,
     pricingTeaserCta: "Смотреть цены",
     previewLabel: "Превью терминала",
     previewRun: "Запустить бэктест",
@@ -79,11 +127,11 @@ export const ru: Dictionary = {
       },
       {
         title: "Подписка на сервис",
-        text: "Регистрация → 1 день бесплатно → Basic или Pro в аккаунте. Без «лицензий на ПО» — просто доступ к терминалу.",
+        text: tc.subscriptionFlowText,
       },
     ],
     steps: [
-      { n: "01", title: "Регистрация", text: "1 день бесплатно, без карты" },
+      { n: "01", title: "Регистрация", text: tc.stepRegisterText },
       { n: "02", title: "Бэктест", text: "Откройте терминал и прогоните стратегию" },
       { n: "03", title: "Подписка", text: "Basic или Pro — активация после оплаты" },
     ],
@@ -107,7 +155,7 @@ export const ru: Dictionary = {
     paramsTitle: "Параметры бэктеста",
     plan: "Тариф",
     demoBanner: "Демо-режим — можно настроить параметры. Чтобы запускать прогоны,",
-    guestRunBlocked: "Зарегистрируйтесь — 1 день бесплатного доступа к прогонам.",
+    guestRunBlocked: tc.guestRunBlocked,
     trialExpired: "Пробный период закончился.",
     subscriptionExpired: "Подписка закончилась.",
     choosePlan: "Выберите Basic или Pro",
@@ -189,6 +237,9 @@ export const ru: Dictionary = {
     title: "Подробный итог",
     subtitle: "Метрики риска и разбивка по этому прогону",
     maxDrawdown: "Макс. просадка",
+    maxRealizedDrawdown: "Макс. просадка (реализ.)",
+    maxEquityDrawdown: "Макс. просадка (equity)",
+    equityAtEnd: "Equity на конец периода",
     winRate: "Доля прибыльных",
     avgTrade: "Сред. сделка",
     totalFees: "Комиссии",
@@ -226,7 +277,7 @@ export const ru: Dictionary = {
     newPassword: "Новый пароль",
     loginTitle: "Вход",
     registerTitle: "Регистрация",
-    registerSubtitle: "1 день пробного доступа — без карты",
+    registerSubtitle: tc.registerSubtitle,
     loginSubtitle: "BackTest Pro · Binance Futures",
     telegramButton: "Войти через Telegram",
     emailLabel: "Email",
@@ -244,6 +295,8 @@ export const ru: Dictionary = {
     telegramNotConfigured:
       "Кнопка Telegram появится после настройки бота (TELEGRAM_BOT_TOKEN в .env).",
     telegramSigningIn: "Входим через Telegram…",
+    devLocalLogin: "Войти локально (без Telegram)",
+    devLocalHint: "Только dev на localhost. На backtestpro.ru не работает.",
     tryLogin: "Попробуйте войти.",
   },
   accountPage: {
@@ -282,8 +335,8 @@ export const ru: Dictionary = {
     presetCalm: "Консервативный",
     presetAggressive: "Агрессивный",
     presetDescCustom: "Нейтральные значения — период и монеты сохраняются, остальное настраиваете сами",
-    presetDescCalm: "Сохранение депозита: 2×, 5% вход, 2 сделки",
-    presetDescAggressive: "Активнее: 10×, 10% вход, 2 сделки",
+    presetDescCalm: "2×, 5% вход. Одиночный — одна позиция; в мульти лимит открытых задаётся отдельно",
+    presetDescAggressive: "10×, 10% вход. Одиночный — одна позиция; в мульти лимит открытых задаётся отдельно",
     period: "Период теста",
     mode: "Режим",
     modeSingle: "Одиночный",
@@ -440,7 +493,7 @@ export const ru: Dictionary = {
   },
   trial: {
     q: "Нужна регистрация?",
-    a: "Да. После регистрации — 1 день бесплатного доступа без карты, затем Basic или Pro.",
+    a: tc.trialFaqA,
   },
   howItWorks: {
     title: "Как это работает",
@@ -451,7 +504,7 @@ export const ru: Dictionary = {
       {
         n: "1",
         title: "Регистрация",
-        text: "Аккаунт — 1 день пробного доступа без карты. Email и пароль.",
+        text: tc.howTrialStepText,
       },
       {
         n: "2",
@@ -487,7 +540,7 @@ export const ru: Dictionary = {
     dataTitle: "Рыночные данные",
     dataText:
       "Минутные свечи и фандинг с Binance USDT-M Futures (публичные рыночные данные). Доступный период зависит от листинга пары.",
-    ctaTrial: "Начать — 1 день бесплатно",
+    ctaTrial: tc.ctaTrial,
     ctaPricing: "Тарифы",
   },
   about: {
@@ -508,7 +561,7 @@ export const ru: Dictionary = {
     knowledgeBaseText:
       "Пошаговые статьи: параметры, трейлинг и TP, усреднения, мульти-режим и как читать результаты бэктеста.",
     topics: [
-      { title: "Пробный период и оплата", text: "1 день после регистрации. Оформление оплаты — заглушка до подключения платёжки." },
+      { title: "Пробный период и оплата", text: tc.helpTrialBillingTopic },
       { title: "Данные", text: "В списке только монеты со свечами в базе." },
       { title: "Результаты", text: "Бэктест — модель. Сравните Conservative и Aggressive перед Custom." },
     ],
@@ -525,7 +578,7 @@ export const ru: Dictionary = {
       },
       {
         q: "Сколько длится пробный период?",
-        a: "1 день после регистрации, без карты. Дальше — Basic или Pro.",
+        a: tc.faqTrialDurationA,
       },
       {
         q: "Basic vs Pro?",
@@ -602,15 +655,15 @@ export const ru: Dictionary = {
     trial: {
       name: "Пробный",
       tagline: "Без карты",
-      pricePeriod: "1 день",
-      priceNote: "Полный доступ 1 день — затем выберите тариф",
+      pricePeriod: tc.plansTrial.pricePeriod,
+      priceNote: tc.plansTrial.priceNote,
       cta: "Начать пробный период",
       features: [
-        "1 день бесплатного доступа",
+        tc.plansTrial.trialAccessFeature,
         "Одиночный · одна монета",
         "Вход, TP, SL, плечо",
         "Подсчёт комиссий и фандинга",
-        "90 дней истории с регистрации",
+        tc.plansTrial.historyFeature,
         "Мульти · Pro",
         "Усреднения (DCA)",
         "Трейлинг TP",
@@ -672,7 +725,7 @@ export const ru: Dictionary = {
   pricing: {
     eyebrow: "Подписка",
     title: "Basic и Pro",
-    subtitle: "1 день бесплатно — затем Basic или Pro",
+    subtitle: tc.pricingSubtitle,
     subtitlePaid: "Сейчас активен {plan}. Сменить или продлить — в аккаунте.",
     subtitleTrial: "Пробный период активен — Basic или Pro можно подключить в любой момент.",
     subtitleExpired: "Пробный период закончился — выберите Basic или Pro.",
@@ -681,7 +734,7 @@ export const ru: Dictionary = {
     faq: [
       {
         q: "Сколько длится пробный период?",
-        a: "1 день без карты. Затем Basic или Pro.",
+        a: tc.pricingFaqTrialA,
       },
       {
         q: "Чем Basic отличается от Pro?",

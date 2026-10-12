@@ -1,7 +1,16 @@
 /**
  * Единый источник тарифов — UI, лендинг и будущие feature flags (M06).
  * Синхронизировать с database/schemas/01_core.sql → core.plans
+ * Сроки пробного периода и окна истории — productPolicy.ts
  */
+
+import {
+  TRIAL_DURATION_DAYS,
+  TRIAL_HISTORY_DAYS,
+  trialCopy,
+} from "@/lib/productPolicy";
+
+const trialPlanCopy = trialCopy("ru").plansTrial;
 
 export type PlanTier = "trial" | "basic" | "pro" | "automatic";
 
@@ -58,16 +67,16 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceRub: 0,
     priceRubLabel: "0 ₽",
     priceUsdLabel: "Free",
-    pricePeriod: "1 день",
-    priceNote: "Полный доступ 1 день — затем Basic или Pro",
-    trialDays: 1,
+    pricePeriod: trialPlanCopy.pricePeriod,
+    priceNote: trialPlanCopy.priceNote,
+    trialDays: TRIAL_DURATION_DAYS,
     accent: "muted",
     cta: "Начать пробный период",
     ctaHref: "/login",
     features: {
       maxCoins: 1,
-      maxDays: 90,
-      trialDays: 1,
+      maxDays: TRIAL_HISTORY_DAYS,
+      trialDays: TRIAL_DURATION_DAYS,
       trailing: false,
       averagingMaxLegs: 0,
       multiCoin: false,
@@ -76,11 +85,11 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       entryPctSplit: false,
     },
     featureItems: [
-      { label: "1 день бесплатного доступа", included: true },
+      { label: trialPlanCopy.trialAccessFeature, included: true },
       { label: "Одиночный · одна монета", included: true },
       { label: "Вход, TP, SL, плечо", included: true },
       { label: "Подсчёт комиссий и фандинга", included: true },
-      { label: "90 дней истории с регистрации", included: true },
+      { label: trialPlanCopy.historyFeature, included: true },
       { label: "Мульти · Pro", included: false },
       { label: "Усреднения (DCA)", included: false },
       { label: "Трейлинг TP", included: false },

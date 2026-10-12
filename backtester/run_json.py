@@ -250,6 +250,10 @@ def single_result_to_dict(
             {"time": int(s.time.timestamp()), "balance": float(s.balance), "pnl_pct": float(s.pnl_pct)}
             for s in result.pnl_curve
         ],
+        "equity_curve": [
+            {"time": int(s.time.timestamp()), "balance": float(s.balance), "pnl_pct": float(s.pnl_pct)}
+            for s in result.equity_curve
+        ],
         "trades": trades_to_list(result.trades),
         "trades_by_symbol": {result.symbol: trades_to_list(result.trades)},
         "markers": build_markers(result.trades, candles_1m, "1m"),
@@ -294,6 +298,10 @@ def portfolio_result_to_dict(result: PortfolioSimulationResult) -> dict:
         "pnl_curve": [
             {"time": int(s.time.timestamp()), "balance": float(s.balance), "pnl_pct": float(s.pnl_pct)}
             for s in result.pnl_curve
+        ],
+        "equity_curve": [
+            {"time": int(s.time.timestamp()), "balance": float(s.balance), "pnl_pct": float(s.pnl_pct)}
+            for s in result.equity_curve
         ],
         "trades": trades_to_list(result.trades),
         "trades_by_symbol": {

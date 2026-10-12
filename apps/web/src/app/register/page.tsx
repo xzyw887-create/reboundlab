@@ -1,19 +1,19 @@
-import { Suspense } from "react";
-import { AuthForm } from "@/components/AuthForm";
-import { AuthPageShell } from "@/components/AuthPageShell";
+import { redirect } from "next/navigation";
 
-function AuthLoading() {
-  return (
-    <AuthPageShell>
-      <p className="text-muted text-sm">…</p>
-    </AuthPageShell>
-  );
-}
+type SearchParams = Record<string, string | string[] | undefined>;
 
-export default function RegisterPage() {
-  return (
-    <Suspense fallback={<AuthLoading />}>
-      <AuthForm mode="register" />
-    </Suspense>
-  );
+export default function RegisterPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === "string") q.set(key, value);
+    else if (Array.isArray(value)) {
+      for (const v of value) q.append(key, v);
+    }
+  }
+  const qs = q.toString();
+  redirect(qs ? `/login?${qs}` : "/login");
 }

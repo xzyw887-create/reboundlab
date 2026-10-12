@@ -1,6 +1,7 @@
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/en";
 import { formatTpl } from "@/lib/i18n";
+import { chargeRubForTier, formatRubAmount } from "@/lib/billingCharge";
 import {
   SUBSCRIPTION_PLANS,
   type SubscriptionPlan,
@@ -65,5 +66,7 @@ export function localizedPlans(t: Dictionary, locale: Locale): SubscriptionPlan[
 }
 
 export function planCheckoutCharge(plan: SubscriptionPlan, t: Dictionary): string {
-  return `${rubChargeLabel(plan)}${plan.priceRub > 0 ? ` ${t.pricingUi.perMonthShort}` : ""}`;
+  const rub = chargeRubForTier(plan.tier);
+  const label = formatRubAmount(rub);
+  return `${label}${rub > 0 ? ` ${t.pricingUi.perMonthShort}` : ""}`;
 }

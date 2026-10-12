@@ -25,23 +25,6 @@ export default function HelpPage() {
         ))}
       </div>
 
-      <div className="card-pro mt-8 not-prose">
-        <div className="card-pro-body space-y-2">
-          <p className="label-caps text-accent">{t.help.knowledgeBaseLabel}</p>
-          <h2 className="text-base font-semibold text-white">{t.help.knowledgeBaseTitle}</h2>
-          <p className="text-sm text-muted leading-relaxed">{t.help.knowledgeBaseText}</p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 mt-6 not-prose">
-        {t.help.topics.map((item) => (
-          <div key={item.title} className="card-pro px-4 py-4">
-            <h2 className="text-sm font-semibold text-white">{item.title}</h2>
-            <p className="text-sm text-muted mt-2 leading-relaxed">{item.text}</p>
-          </div>
-        ))}
-      </div>
-
       <p className="mt-8 not-prose">
         <Link href="/how-it-works" className="text-accent hover:underline">
           {t.nav.howItWorks} →

@@ -84,7 +84,7 @@ function TierCard({
       )}
 
       <div className="pricing-tier-inner">
-        <p className="label-caps text-sky-300 mb-3">{plan.tagline}</p>
+        <p className="label-caps text-accent mb-3">{plan.tagline}</p>
         <h3 className="text-xl font-bold text-white mt-1 tracking-tight">{plan.name}</h3>
 
         <div className="mt-5 flex items-baseline gap-1.5 flex-wrap">
@@ -149,7 +149,7 @@ function TierCard({
           </div>
         ) : plan.tier === "trial" ? (
           <div className={ctaWrap}>
-            <Link href="/register?next=/app" className={`${ctaClass} block text-center`}>
+            <Link href="/login?next=/app" className={`${ctaClass} block text-center`}>
               {plan.cta}
             </Link>
           </div>

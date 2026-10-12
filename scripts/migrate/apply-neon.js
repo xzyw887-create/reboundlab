@@ -22,6 +22,11 @@ const FILES = [
   "database/schemas/03_backtest.sql",
   "database/schemas/04_funding_rates.sql",
   "database/schemas/05_user_runs_auth.sql",
+  "database/schemas/06_billing_anchor.sql",
+  "database/schemas/07_signup_guard.sql",
+  "database/schemas/08_telegram_auth.sql",
+  "database/schemas/09_trial_claims.sql",
+  "database/schemas/10_billing_payments.sql",
 ];
 
 async function main() {
@@ -44,7 +49,20 @@ async function main() {
     }
     const sql = fs.readFileSync(file, "utf8");
     console.log("→", rel);
-    await client.query(sql);
+    try {
+      await client.query(sql);
+    } catch (err) {
+      const msg = err.message || String(err);
+      if (
+        msg.includes("already exists") ||
+        msg.includes("duplicate key") ||
+        msg.includes("duplicate_object")
+      ) {
+        console.log("  (skip — already applied)");
+        continue;
+      }
+      throw err;
+    }
   }
 
   await client.end();

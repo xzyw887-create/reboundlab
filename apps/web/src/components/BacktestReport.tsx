@@ -32,9 +32,22 @@ export function BacktestReport({ result }: Props) {
 
   const metricRows = [
     {
-      label: t.report.maxDrawdown,
-      value: `-${analytics.maxDrawdownPct.toFixed(1)}%`,
+      label: t.report.maxRealizedDrawdown,
+      value: `-${analytics.maxRealizedDrawdownPct.toFixed(1)}%`,
       className: "text-red-400",
+    },
+    {
+      label: t.report.maxEquityDrawdown,
+      value:
+        analytics.maxEquityDrawdownPct != null
+          ? `-${analytics.maxEquityDrawdownPct.toFixed(1)}%`
+          : "—",
+      className: "text-red-400",
+    },
+    {
+      label: t.report.equityAtEnd,
+      value: `$${analytics.equityAtEndUsd.toFixed(2)}`,
+      className: "text-gray-100",
     },
     {
       label: t.report.winRate,

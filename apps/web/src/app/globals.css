@@ -4,12 +4,12 @@
 
 :root {
   color-scheme: dark;
-  --bg-deep: #0b0e14;
-  --bg-card: #121820;
-  --bg-card-inner: #1a212f;
-  --border-subtle: #1e2d42;
-  --text-muted: #8892b0;
-  --accent-cyan: #00a3ff;
+  --bg-deep: #08090b;
+  --bg-card: #0f1114;
+  --bg-card-inner: #14171c;
+  --border-subtle: #1e2228;
+  --text-muted: #7a8494;
+  --accent-blue: #2563eb;
   --accent-gold: #f5a623;
 }
 
@@ -17,16 +17,6 @@ html {
   overflow-x: clip;
   overscroll-behavior-x: none;
   background-color: var(--bg-deep);
-  background-image: radial-gradient(
-      ellipse 80% 50% at 50% -20%,
-      rgba(0, 163, 255, 0.08),
-      transparent
-    ),
-    radial-gradient(
-      ellipse 60% 40% at 100% 0%,
-      rgba(139, 92, 246, 0.05),
-      transparent
-    );
 }
 
 body {
@@ -35,18 +25,8 @@ body {
   overscroll-behavior-x: none;
   max-width: 100%;
   background-color: var(--bg-deep);
-  color: #e8edf5;
+  color: #f0f2f5;
   -webkit-font-smoothing: antialiased;
-  background-image: radial-gradient(
-      ellipse 80% 50% at 50% -20%,
-      rgba(0, 163, 255, 0.08),
-      transparent
-    ),
-    radial-gradient(
-      ellipse 60% 40% at 100% 0%,
-      rgba(139, 92, 246, 0.05),
-      transparent
-    );
 }
 
 @layer components {
@@ -55,32 +35,23 @@ body {
   }
 
   .logo-box {
-    @apply w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white shadow-glow-sm;
-    background: linear-gradient(135deg, #0066cc 0%, #00d4ff 100%);
+    @apply w-10 h-10 rounded flex items-center justify-center font-bold text-sm text-white border border-border bg-panel-inner;
   }
 
   .title-gradient {
-    @apply font-bold text-lg bg-gradient-to-r from-accent via-sky-200 to-white bg-clip-text text-transparent;
+    @apply font-semibold text-lg text-gray-100 tracking-tight;
+  }
+
+  .site-brand-name {
+    @apply font-semibold text-sm uppercase tracking-[0.06em] text-gray-100;
   }
 
   .card-pro {
-    @apply relative rounded-2xl border border-border/80 bg-panel overflow-hidden;
+    @apply relative rounded-md border border-border bg-panel overflow-hidden;
   }
 
   .card-pro::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(
-      90deg,
-      #00a3ff 0%,
-      #8b5cf6 45%,
-      #22c55e 100%
-    );
-    opacity: 0.85;
+    content: none;
   }
 
   .card-pro-body {
@@ -114,17 +85,16 @@ body {
   }
 
   .btn-primary {
-    @apply py-3 rounded-xl font-semibold text-white no-underline disabled:opacity-50 transition-all;
+    @apply py-3 rounded font-medium text-white no-underline disabled:opacity-50 transition-colors;
     color: #ffffff;
-    background: linear-gradient(135deg, #0077cc 0%, #00a8f0 100%);
-    box-shadow: 0 0 20px rgba(0, 163, 255, 0.3);
+    background: #2563eb;
+    box-shadow: none;
   }
 
   .btn-primary:hover:not(:disabled) {
     color: #ffffff;
     text-decoration: none;
-    box-shadow: 0 0 28px rgba(0, 163, 255, 0.45);
-    filter: brightness(1.05);
+    background: #1d4ed8;
   }
 
   .btn-ghost {
@@ -137,7 +107,7 @@ body {
   }
 
   .chip-active {
-    @apply border-accent/60 bg-accent/15 text-sky-100 shadow-glow-sm;
+    @apply border-accent/50 bg-accent/10 text-gray-100;
   }
 
   /* ——— Pricing (video-style tier cards) ——— */
@@ -185,17 +155,17 @@ body {
   }
 
   .pricing-tier--cyan {
-    @apply border-cyan-500/25;
+    @apply border-accent/30;
   }
   .pricing-tier--cyan::before {
-    background: linear-gradient(90deg, #00a3ff, #22d3ee);
+    background: #2563eb;
   }
 
   .pricing-tier--violet {
-    @apply border-violet-500/30;
+    @apply border-accent/35;
   }
   .pricing-tier--violet::before {
-    background: linear-gradient(90deg, #00a3ff, #8b5cf6, #22c55e);
+    background: #2563eb;
   }
 
   .pricing-tier--gold {
@@ -213,9 +183,7 @@ body {
   }
 
   .pricing-tier--popular {
-    box-shadow:
-      0 0 0 1px rgba(139, 92, 246, 0.35),
-      0 0 40px rgba(0, 163, 255, 0.12);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
     transform: scale(1.02);
   }
 
@@ -318,7 +286,7 @@ body {
 
   /* ——— Site / Landing (Tiger-inspired) ——— */
   .site-header {
-    @apply sticky top-0 z-30 border-b border-border/60 bg-panel/85 backdrop-blur-md;
+    @apply sticky top-0 z-30 border-b border-border bg-panel;
   }
 
   .site-header-inner {
@@ -329,12 +297,84 @@ body {
     @apply flex items-center gap-3 min-w-0;
   }
 
+  .site-brand-chevron {
+    @apply text-muted ml-1 shrink-0 transition-colors;
+  }
+
+  .site-brand-chevron-icon {
+    @apply w-5 h-5;
+  }
+
+  .site-brand-dropdown-wrap:hover .site-brand-chevron {
+    @apply text-accent;
+  }
+
+  .site-brand-dropdown-wrap:hover .site-brand-chevron-icon {
+    transform: rotate(180deg);
+    transition: transform 0.15s ease;
+  }
+
+  .site-brand-dropdown-wrap {
+    @apply relative;
+  }
+
+  .site-brand-dropdown {
+    @apply absolute left-0 top-full z-40 pt-2 min-w-[11rem];
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+  }
+
+  .site-brand-dropdown-wrap:hover .site-brand-dropdown,
+  .site-brand-dropdown-wrap:focus-within .site-brand-dropdown {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .site-brand-dropdown-panel {
+    @apply rounded-lg border border-border bg-panel py-1 shadow-lg;
+  }
+
+  .site-brand-dropdown-link {
+    @apply block px-4 py-2.5 text-sm text-muted hover:text-accent hover:bg-panel-inner transition-colors;
+  }
+
   .site-nav {
     @apply flex items-center gap-2 sm:gap-4 shrink-0;
   }
 
   .site-nav-link {
     @apply text-xs sm:text-sm text-muted hover:text-accent transition-colors px-2 py-1;
+  }
+
+  .site-nav-terminal-cta {
+    @apply inline-flex items-center justify-center text-xs sm:text-sm font-semibold text-white px-3 sm:px-4 py-2 rounded-md whitespace-nowrap transition-colors;
+    background: #1d4ed8;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  }
+
+  .site-nav-terminal-cta:hover {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .landing-section--compact {
+    @apply py-10 sm:py-12;
+  }
+
+  .btn-terminal-launch {
+    @apply inline-flex items-center justify-center font-semibold text-white px-8 py-3 rounded-md transition-colors;
+    background: #1d4ed8;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  }
+
+  .btn-terminal-launch:hover {
+    background: #2563eb;
+    color: #fff;
   }
 
   .site-cta-sm {
@@ -363,7 +403,7 @@ body {
   }
 
   .site-mobile-nav {
-    @apply fixed inset-0 z-40 flex justify-end;
+    @apply fixed inset-0 z-[100] flex justify-end;
   }
 
   .site-mobile-backdrop {
@@ -388,6 +428,10 @@ body {
 
   .site-mobile-panel .site-nav-link {
     @apply block py-2.5 px-2 text-base border-b border-border/30 last:border-0;
+  }
+
+  .site-mobile-panel .site-nav-terminal-cta {
+    @apply w-full text-center py-3 mt-2 mb-1 text-base;
   }
 
   .telegram-widget-host {
@@ -445,10 +489,7 @@ body {
   }
 
   .landing-hero-glow {
-    @apply absolute inset-0 pointer-events-none;
-    background:
-      radial-gradient(ellipse 70% 60% at 20% 0%, rgba(0, 163, 255, 0.14), transparent),
-      radial-gradient(ellipse 50% 40% at 90% 20%, rgba(139, 92, 246, 0.1), transparent);
+    @apply hidden;
   }
 
   .landing-hero-grid {
@@ -456,11 +497,11 @@ body {
   }
 
   .landing-title {
-    @apply text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight;
+    @apply text-3xl sm:text-4xl lg:text-[2.75rem] font-medium text-gray-50 leading-tight tracking-tight;
   }
 
   .landing-title-accent {
-    @apply bg-gradient-to-r from-accent via-violet-400 to-emerald-400 bg-clip-text text-transparent;
+    @apply text-gray-50 font-medium;
   }
 
   .landing-lead {
@@ -468,16 +509,16 @@ body {
   }
 
   .landing-why {
-    @apply max-w-xl rounded-2xl border border-border/60 bg-panel/50 px-4 py-4 sm:px-5 sm:py-5;
+    @apply max-w-xl rounded-md border border-border bg-panel px-4 py-4 sm:px-5 sm:py-5;
   }
 
   .landing-btn-outline {
-    @apply inline-flex items-center justify-center py-3 rounded-xl text-sm font-semibold border border-border/80 text-gray-200
-      hover:border-accent/50 hover:text-accent transition-colors;
+    @apply inline-flex items-center justify-center py-3 rounded text-sm font-medium border border-border text-gray-200
+      hover:border-gray-500 hover:text-white transition-colors;
   }
 
   .landing-preview {
-    @apply shadow-glow-sm;
+    @apply shadow-none;
   }
 
   .landing-preview--animated {
@@ -500,21 +541,18 @@ body {
   }
 
   .landing-chart-mock {
-    @apply relative h-40 rounded-xl border border-border/60 overflow-hidden;
-    background:
-      linear-gradient(180deg, rgba(0, 163, 255, 0.08), transparent 40%),
-      repeating-linear-gradient(
-        90deg,
-        rgba(30, 45, 66, 0.5) 0,
-        rgba(30, 45, 66, 0.5) 1px,
-        transparent 1px,
-        transparent 48px
-      ),
-      linear-gradient(180deg, #121820, #0b0e14);
+    @apply relative h-40 rounded border border-border overflow-hidden bg-panel-inner;
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(42, 48, 56, 0.45) 0,
+      rgba(42, 48, 56, 0.45) 1px,
+      transparent 1px,
+      transparent 48px
+    );
   }
 
   .landing-chart-mock--animated {
-    @apply border-accent/20;
+    @apply border-border;
   }
 
   .landing-chart-svg {
@@ -704,20 +742,145 @@ body {
   }
 
   .landing-section--muted {
-    background: rgba(18, 24, 32, 0.45);
-    border-block: 1px solid rgba(30, 45, 66, 0.6);
+    background: #0c0d10;
+    border-block: 1px solid var(--border-subtle);
   }
 
   .landing-step {
-    @apply rounded-2xl border border-border/60 bg-panel/60 p-6;
+    @apply rounded-md border border-border bg-panel p-6;
   }
 
   .landing-step-num {
-    @apply text-3xl font-bold tabular-nums;
-    background: linear-gradient(135deg, #00a3ff, #8b5cf6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    @apply text-3xl font-medium tabular-nums font-mono text-muted;
+  }
+
+  .product-showcase-stack {
+    @apply flex flex-col gap-0;
+  }
+
+  .product-showcase-row {
+    @apply grid lg:grid-cols-2 gap-8 lg:gap-14 items-center py-12 sm:py-16 border-b border-border;
+  }
+
+  .product-showcase-row:last-child {
+    @apply border-b-0;
+  }
+
+  .product-showcase-row--reverse .product-showcase-copy {
+    @apply lg:order-2;
+  }
+
+  .product-showcase-row--reverse .product-showcase-visual {
+    @apply lg:order-1;
+  }
+
+  .product-showcase-visual-frame {
+    @apply relative rounded-lg p-[1px];
+    background: linear-gradient(
+      135deg,
+      rgba(37, 99, 235, 0.35) 0%,
+      rgba(37, 99, 235, 0.08) 45%,
+      rgba(255, 255, 255, 0.06) 100%
+    );
+  }
+
+  .product-showcase-visual {
+    @apply rounded-[7px] border border-border bg-panel p-3 sm:p-4 min-w-0;
+  }
+
+  .product-showcase-visual--table {
+    @apply p-2 sm:p-3 overflow-x-auto overflow-y-visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .product-mock--screenshot {
+    @apply border-0 bg-transparent p-0;
+  }
+
+  .product-mock {
+    @apply rounded border border-border bg-panel-inner overflow-hidden;
+  }
+
+  .product-mock--trades {
+    @apply overflow-visible w-max min-w-full max-w-none;
+  }
+
+  .product-mock-summary {
+    @apply grid grid-cols-3 gap-2 px-3 py-2.5 border-b border-border bg-panel-inner/60;
+  }
+
+  .product-mock-kpi {
+    @apply flex flex-col gap-0.5 min-w-0;
+  }
+
+  .product-mock-kpi-label {
+    @apply text-[9px] sm:text-[10px] uppercase tracking-wide text-muted font-medium truncate;
+  }
+
+  .product-mock-bar {
+    @apply flex justify-between items-center gap-2 px-3 py-2 border-b border-border text-xs text-muted;
+  }
+
+  .product-mock-table-scroll {
+    @apply overflow-x-visible px-1 pb-0.5;
+  }
+
+  .product-mock-table--wide {
+    @apply w-auto min-w-full border-collapse;
+  }
+
+  .product-mock-table--wide th,
+  .product-mock-table--wide td {
+    @apply whitespace-nowrap text-[10px] sm:text-[11px] px-2 py-1.5;
+  }
+
+  .product-mock-table--wide th {
+    @apply text-[9px] sm:text-[10px];
+  }
+
+  .product-mock-table--wide th:last-child,
+  .product-mock-table--wide td:last-child {
+    @apply pr-3;
+  }
+
+  .product-mock-metrics {
+    @apply grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 border-t border-border;
+  }
+
+  .product-mock-metric {
+    @apply rounded border border-border bg-panel-inner px-2 py-1.5 min-w-0;
+  }
+
+  .product-mock-metric-label {
+    @apply text-[9px] uppercase tracking-wide text-muted leading-tight mb-0.5;
+  }
+
+  .product-mock-caption {
+    @apply px-3 py-2 text-[10px] text-muted border-t border-border;
+  }
+
+  .product-mock-table {
+    @apply w-full text-xs;
+  }
+
+  .product-mock-table th {
+    @apply text-left px-3 py-2 text-[10px] uppercase tracking-wide text-muted font-medium border-b border-border;
+  }
+
+  .product-mock-table td {
+    @apply px-3 py-2 border-b border-border/60 text-gray-200;
+  }
+
+  .product-mock-compare-col {
+    @apply rounded border border-border bg-panel p-3;
+  }
+
+  .product-mock-stat {
+    @apply rounded border border-border bg-panel py-2 px-1;
+  }
+
+  .product-showcase .mono {
+    @apply font-mono tabular-nums;
   }
 
   /* ——— Checkout stub ——— */
@@ -754,7 +917,7 @@ body {
   }
 
   .prose-site a:not(.btn-primary):not(.landing-btn-outline) {
-    @apply text-sky-300 hover:text-sky-200 hover:underline;
+    @apply text-accent hover:text-blue-400 hover:underline;
   }
 }
 
@@ -806,7 +969,7 @@ select {
 }
 
 .date-range-input:focus {
-  border-color: var(--accent-cyan);
+  border-color: var(--accent-blue);
   box-shadow: 0 0 0 1px rgba(0, 163, 255, 0.25);
 }
 

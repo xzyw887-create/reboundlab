@@ -1,4 +1,5 @@
 import type { ApiLocale } from "@/lib/apiLocale";
+import { trialCopy } from "@/lib/productPolicy";
 
 export type ApiErrorCode =
   | "AUTH_REQUIRED"
@@ -40,6 +41,7 @@ export type ApiErrorCode =
   | "INVALID_PAYLOAD"
   | "MISSING_ID"
   | "INVALID_REQUEST"
+  | "PAYMENT_PROVIDER_REQUIRED"
   | "CANCELLED"
   | "UNKNOWN";
 
@@ -57,10 +59,13 @@ export class ApiError extends Error {
 
 type MsgVars = Record<string, string | number>;
 
+const trialMsgs = trialCopy("ru");
+const trialMsgsEn = trialCopy("en");
+
 const MSGS: Record<ApiErrorCode, Record<ApiLocale, string>> = {
   AUTH_REQUIRED: {
-    ru: "Войдите через Telegram — 1 день пробного доступа для новых аккаунтов",
-    en: "Sign in with Telegram — 1-day trial for new accounts",
+    ru: trialMsgs.telegramTrialHint,
+    en: trialMsgsEn.telegramTrialHint,
   },
   TRIAL_EXPIRED: {
     ru: "Пробный период закончился — выберите тариф Basic или Pro",
@@ -213,6 +218,10 @@ const MSGS: Record<ApiErrorCode, Record<ApiLocale, string>> = {
   INVALID_REQUEST: {
     ru: "Некорректный запрос",
     en: "Invalid request",
+  },
+  PAYMENT_PROVIDER_REQUIRED: {
+    ru: "Оплата только через платёжную систему на сайте",
+    en: "Please complete checkout via the payment provider",
   },
   CANCELLED: {
     ru: "Отменено",

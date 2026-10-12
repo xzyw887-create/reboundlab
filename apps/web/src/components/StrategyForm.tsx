@@ -559,6 +559,7 @@ export function StrategyForm({
               update({
                 mode,
                 symbols: [params.symbols[0] ?? DEMO_COINS[0]],
+                max_open_trades: null,
               });
               return;
             }

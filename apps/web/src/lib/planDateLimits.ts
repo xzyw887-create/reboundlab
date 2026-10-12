@@ -1,12 +1,12 @@
 import { ApiError } from "@/lib/apiErrors";
 import type { PlanTier } from "@/lib/subscriptionTiers";
 import { featuresForTier } from "@/lib/subscriptionTiers";
+import {
+  PAID_HISTORY_DAYS,
+  TRIAL_HISTORY_DAYS,
+} from "@/lib/productPolicy";
 
-/** Календарные дни истории на пробном тарифе (≈3 месяца). */
-export const TRIAL_HISTORY_DAYS = 90;
-
-/** Календарные дни истории на Basic / Pro (3 года). */
-export const PAID_HISTORY_DAYS = 1095;
+export { PAID_HISTORY_DAYS, TRIAL_HISTORY_DAYS };
 
 export interface PlanDateContext {
   tier: PlanTier;

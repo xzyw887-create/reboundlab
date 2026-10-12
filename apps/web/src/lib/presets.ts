@@ -112,14 +112,19 @@ export function applyPreset(
 ): BacktestParams {
   const preset = STRATEGY_PRESETS.find((p) => p.id === presetId);
   if (!preset || presetId === "custom") return current;
-  return {
+  const mode = current.mode;
+  const next: BacktestParams = {
     ...current,
     ...preset.patch,
     symbols: current.symbols,
     excluded_symbols: current.excluded_symbols,
     start_date: current.start_date,
     end_date: current.end_date,
-    mode: current.mode,
+    mode,
     data_source: current.data_source,
   };
+  if (mode === "single") {
+    next.max_open_trades = null;
+  }
+  return next;
 }

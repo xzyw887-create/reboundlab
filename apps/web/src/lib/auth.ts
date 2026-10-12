@@ -111,6 +111,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
   const session = await readSessionToken();
   if (!session) return null;
 
+  await ensureTelegramAuthSchema();
   await ensureBillingSchema();
 
   const rows = await query<{

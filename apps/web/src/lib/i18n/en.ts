@@ -1,3 +1,7 @@
+import { trialCopy } from "../productPolicy";
+
+const tc = trialCopy("en");
+
 export const en = {
   brand: {
     name: "BackTest Pro",
@@ -18,7 +22,7 @@ export const en = {
     closeMenu: "Close menu",
   },
   landing: {
-    heroLabel: "BackTest Pro",
+    heroLabel: "Binance USDT-M · minute bars",
     heroTitle: "Backtest bounce strategies",
     heroTitleAccent: " on crypto futures",
     heroLead:
@@ -32,10 +36,10 @@ export const en = {
     ],
     whyDisclaimer:
       "Historical simulation only. Not investment advice.",
-    ctaTrial: "Start — 1-day free trial",
+    ctaTrial: tc.ctaTrial,
     ctaCalculator: "Open terminal",
     ctaChoosePlan: "Choose a plan",
-    trialNote: "1-day trial after registration · No card required",
+    trialNote: tc.trialNote,
     planActive: "Your plan: {plan}",
     trialActiveNote: "Trial active — full terminal access",
     trialActiveUntil: "Trial until {date}",
@@ -48,11 +52,56 @@ export const en = {
     },
     featuresTitle: "Everything to validate your edge",
     featuresLabel: "Features",
+    productShowcase: {
+      label: "Product",
+      title: "What you get after a backtest in the terminal",
+      lead:
+        "Not a vague “AI backtest” — a concrete report: trades on the chart, fill table, run compare, and PnL curve — matching the live terminal.",
+      ctaTerminal: "Open terminal",
+      ctaHow: "How it works",
+      quickNavLabel: "Site sections",
+      slides: [
+        {
+          eyebrow: "Chart",
+          title: "Candles with entries and exits",
+          body:
+            "Every fill is anchored in time — see where the strategy entered, exited, and how price moved in between, without scrolling thousands of bars by hand.",
+        },
+        {
+          eyebrow: "Trades",
+          title: "Results table with fees and funding",
+          body:
+            "Full run log: side, time, per-trade PnL. Reconcile bot logic and export CSV for your own spreadsheets.",
+        },
+        {
+          eyebrow: "Compare",
+          title: "Two backtests side by side — A and B",
+          body:
+            "Save a run, tweak one parameter, compare return %, drawdown, and trade count — how you pick what works, not what looks good on paper.",
+        },
+        {
+          eyebrow: "Report",
+          title: "PnL, equity, and risk summary",
+          body:
+            "Equity curve, key metrics, and closed-trade totals — what you actually see when you hit Run in the terminal.",
+        },
+      ],
+      mocks: {
+        chartCaption: "Entries and exits on the same chart as in the terminal",
+        markersLabel: "markers",
+        tradesTitle: "Trades table",
+        tradesClosedSuffix: "closed",
+        runA: "Run A",
+        runB: "Run B",
+        metricTrades: "Trades",
+        metricDd: "Max DD",
+        metricWin: "Win",
+      },
+    },
     stepsLabel: "Get started",
     pricingLabel: "Subscription",
     pricingTitle: "Basic & Pro",
-    pricingLead:
-      "1-day free trial, then checkout — access in your account right away. Card payments coming soon.",
+    pricingLead: tc.pricingLeadTrialPart,
     pricingTeaserCta: "View pricing",
     previewLabel: "Terminal preview",
     previewRun: "Run backtest",
@@ -77,11 +126,11 @@ export const en = {
       },
       {
         title: "Subscription access",
-        text: "Register → 1-day trial → Basic or Pro in your account. Not a software license — terminal access only.",
+        text: tc.subscriptionFlowText,
       },
     ],
     steps: [
-      { n: "01", title: "Register", text: "1 day free, no card" },
+      { n: "01", title: "Register", text: tc.stepRegisterText },
       { n: "02", title: "Backtest", text: "Open the terminal and run your strategy" },
       { n: "03", title: "Subscribe", text: "Basic or Pro — active right after checkout" },
     ],
@@ -104,7 +153,7 @@ export const en = {
     paramsTitle: "Backtest parameters",
     plan: "Plan",
     demoBanner: "Demo mode — explore settings. To run backtests,",
-    guestRunBlocked: "Register for a 1-day free trial to run backtests.",
+    guestRunBlocked: tc.guestRunBlocked,
     trialExpired: "Trial ended.",
     subscriptionExpired: "Subscription ended.",
     choosePlan: "Choose Basic or Pro",
@@ -186,6 +235,9 @@ export const en = {
     title: "Detailed summary",
     subtitle: "Risk metrics and breakdown for this run",
     maxDrawdown: "Max drawdown",
+    maxRealizedDrawdown: "Max drawdown (realized)",
+    maxEquityDrawdown: "Max drawdown (equity)",
+    equityAtEnd: "Equity at period end",
     winRate: "Win rate",
     avgTrade: "Avg trade",
     totalFees: "Total fees",
@@ -223,7 +275,7 @@ export const en = {
     newPassword: "New password",
     loginTitle: "Log in",
     registerTitle: "Sign up",
-    registerSubtitle: "1-day trial — no card required",
+    registerSubtitle: tc.registerSubtitle,
     loginSubtitle: "BackTest Pro · Binance Futures",
     telegramButton: "Continue with Telegram",
     emailLabel: "Email",
@@ -233,7 +285,7 @@ export const en = {
     signIn: "Log in",
     haveAccount: "Already have an account?",
     noAccount: "Don't have an account?",
-    signupCta: "Sign up — 1 day free",
+    signupCta: tc.signupCta,
     backHome: "← Back to home",
     loading: "Loading…",
     errorGeneric: "Something went wrong",
@@ -241,6 +293,8 @@ export const en = {
     telegramNotConfigured:
       "Telegram button will appear after TELEGRAM_BOT_TOKEN is set in .env.",
     telegramSigningIn: "Signing in with Telegram…",
+    devLocalLogin: "Continue locally (no Telegram)",
+    devLocalHint: "Dev on localhost only. Disabled on backtestpro.ru.",
     tryLogin: "Try logging in.",
   },
   accountPage: {
@@ -279,8 +333,8 @@ export const en = {
     presetCalm: "Conservative",
     presetAggressive: "Aggressive",
     presetDescCustom: "Neutral defaults — period and coins stay, you tune the rest",
-    presetDescCalm: "Capital preservation: 2× lev, 5% entry, 2 open trades",
-    presetDescAggressive: "Higher pace: 10× lev, 10% entry, 2 open trades",
+    presetDescCalm: "2× lev, 5% entry. Single — one position; in Multi set max open trades",
+    presetDescAggressive: "10× lev, 10% entry. Single — one position; in Multi set max open trades",
     period: "Test period",
     mode: "Mode",
     modeSingle: "Single",
@@ -435,7 +489,7 @@ export const en = {
   },
   trial: {
     q: "Registration required?",
-    a: "Yes. After sign-up you get 1 day free with no card, then Basic or Pro.",
+    a: tc.trialFaqA,
   },
   howItWorks: {
     title: "How it works",
@@ -446,7 +500,7 @@ export const en = {
       {
         n: "1",
         title: "Register",
-        text: "Create an account — 1-day trial, no card. Email and password only.",
+        text: tc.howTrialStepText,
       },
       {
         n: "2",
@@ -482,7 +536,7 @@ export const en = {
     dataTitle: "Market data",
     dataText:
       "1-minute OHLCV candles and funding history from Binance USDT-M Futures (public market data). Coverage depends on when each pair was listed.",
-    ctaTrial: "Start — 1-day free trial",
+    ctaTrial: tc.ctaTrial,
     ctaPricing: "View plans",
   },
   about: {
@@ -503,7 +557,7 @@ export const en = {
     knowledgeBaseText:
       "Step-by-step guides for parameters, trailing vs TP, averaging, multi-coin mode, and reading backtest results.",
     topics: [
-      { title: "Trial & billing", text: "1-day trial after registration. Checkout is a template until payment provider is connected." },
+      { title: "Trial & billing", text: tc.helpTrialBillingTopic },
       { title: "Data coverage", text: "Only pairs with loaded candles appear in the coin picker. Local deployments can load 375+ symbols." },
       { title: "Results", text: "Backtests are simulations. Compare Conservative and Aggressive presets before tuning Custom settings." },
     ],
@@ -520,7 +574,7 @@ export const en = {
       },
       {
         q: "How long is the trial?",
-        a: "1 day after registration, no card. After that choose Basic or Pro.",
+        a: tc.faqTrialDurationA,
       },
       {
         q: "Basic vs Pro?",
@@ -597,15 +651,15 @@ export const en = {
     trial: {
       name: "Trial",
       tagline: "No card",
-      pricePeriod: "1 day",
-      priceNote: "Full access for 1 day — then choose a plan",
+      pricePeriod: tc.plansTrial.pricePeriod,
+      priceNote: tc.plansTrial.priceNote,
       cta: "Start free trial",
       features: [
-        "1 day free access",
+        tc.plansTrial.trialAccessFeature,
         "Single · one coin",
         "Entry, TP, SL, leverage",
         "Fees and funding in calculations",
-        "90 days history from signup",
+        tc.plansTrial.historyFeature,
         "Multi · Pro",
         "Averaging (DCA)",
         "Trailing take profit",
@@ -667,7 +721,7 @@ export const en = {
   pricing: {
     eyebrow: "Subscription",
     title: "Basic & Pro",
-    subtitle: "1-day free trial — then Basic or Pro",
+    subtitle: tc.pricingSubtitle,
     subtitlePaid: "You’re on {plan}. Upgrade or renew in Account.",
     subtitleTrial: "Trial active — pick a plan anytime.",
     subtitleExpired: "Trial ended — choose Basic or Pro to continue.",
@@ -676,7 +730,7 @@ export const en = {
     faq: [
       {
         q: "How long is the trial?",
-        a: "1 day free, no card. After that choose Basic or Pro.",
+        a: tc.pricingFaqTrialA,
       },
       {
         q: "Basic vs Pro?",

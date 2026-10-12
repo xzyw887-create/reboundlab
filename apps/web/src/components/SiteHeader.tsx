@@ -35,29 +35,15 @@ export function SiteHeader(_props?: Props) {
     ? userDisplayLabel(user, t.accountPage.loginViaTelegram)
     : "";
 
-  const navLinks = (
-    <>
-      <Link href="/how-it-works" className="site-nav-link" onClick={closeMobile}>
-        {t.nav.howItWorks}
-      </Link>
-      <Link href="/#features" className="site-nav-link" onClick={closeMobile}>
-        {t.nav.product}
-      </Link>
-      <Link href="/pricing" className="site-nav-link" onClick={closeMobile}>
-        {t.nav.pricing}
-      </Link>
-      <Link href="/help" className="site-nav-link" onClick={closeMobile}>
-        {t.nav.help}
-      </Link>
-      {isGuest && (
-        <AppLink href="/app" className="site-nav-link" onClick={closeMobile}>
-          {t.landing.ctaCalculator}
-        </AppLink>
-      )}
-    </>
-  );
+  const siteMenuLinks = [
+    { href: "/how-it-works", label: t.nav.howItWorks },
+    { href: "/#features", label: t.nav.product },
+    { href: "/pricing", label: t.nav.pricing },
+    { href: "/help", label: t.nav.help },
+  ] as const;
 
   return (
+    <>
     <header className="site-header">
       <div className="site-header-inner">
         <div className="flex items-center gap-2 min-w-0">
@@ -70,42 +56,43 @@ export function SiteHeader(_props?: Props) {
           >
             <span className="site-menu-icon" aria-hidden />
           </button>
-          <Link href="/" className="site-brand group min-w-0" onClick={closeMobile}>
-            <BrandLogo size="md" decorative />
-            <div className="min-w-0">
-              <p className="title-gradient text-lg leading-tight truncate">{t.brand.name}</p>
+          <div className="site-brand-dropdown-wrap max-md:contents">
+            <Link href="/" className="site-brand group min-w-0" onClick={closeMobile}>
+              <BrandLogo size="md" decorative />
+              <div className="min-w-0">
+                <p className="site-brand-name truncate">{t.brand.name}</p>
+              </div>
+              <span className="site-brand-chevron hidden md:inline-flex" aria-hidden>
+                <svg viewBox="0 0 16 16" className="site-brand-chevron-icon" fill="currentColor">
+                  <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </Link>
+            <div className="site-brand-dropdown hidden md:block" role="navigation" aria-label={t.brand.name}>
+              <div className="site-brand-dropdown-panel">
+                {siteMenuLinks.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="site-brand-dropdown-link"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </Link>
+          </div>
         </div>
 
         <nav className="site-nav hidden md:flex">
-          <Link href="/how-it-works" className="site-nav-link hidden md:inline">
-            {t.nav.howItWorks}
-          </Link>
-          <Link href="/#features" className="site-nav-link hidden md:inline">
-            {t.nav.product}
-          </Link>
-          <Link href="/pricing" className="site-nav-link hidden md:inline">
-            {t.nav.pricing}
-          </Link>
-          <Link href="/help" className="site-nav-link hidden md:inline">
-            {t.nav.help}
-          </Link>
-          {isGuest && (
-            <AppLink href="/app" className="site-nav-link hidden sm:inline">
-              {t.landing.ctaCalculator}
-            </AppLink>
-          )}
+          <AppLink href="/app" className="site-nav-terminal-cta hidden sm:inline-flex">
+            {t.landing.ctaCalculator}
+          </AppLink>
           <LanguageSwitcher />
           {!loading && isGuest && (
-            <>
-              <AppLink href="/login?next=/app" className="site-nav-link">
-                {t.nav.login}
-              </AppLink>
-              <AppLink href="/register?next=/app" className="btn-primary site-cta-sm">
-                {t.nav.signup}
-              </AppLink>
-            </>
+            <AppLink href="/login?next=/app" className="btn-primary site-cta-sm">
+              {t.nav.login}
+            </AppLink>
           )}
           {!loading && user && (
             <>
@@ -120,13 +107,9 @@ export function SiteHeader(_props?: Props) {
               >
                 {userLabel}
               </Link>
-              {isTrialExpired ? (
+              {isTrialExpired && (
                 <Link href="/pricing" className="btn-primary site-cta-sm">
                   {t.landing.ctaChoosePlan}
-                </Link>
-              ) : (
-                <Link href="/app" className="btn-primary site-cta-sm">
-                  {t.landing.ctaCalculator}
                 </Link>
               )}
             </>
@@ -136,17 +119,13 @@ export function SiteHeader(_props?: Props) {
         <div className="flex items-center gap-2 md:hidden shrink-0">
           <LanguageSwitcher />
           {!loading && isGuest && (
-            <AppLink href="/register?next=/app" className="btn-primary site-cta-sm text-xs">
-              {t.nav.signup}
+            <AppLink href="/login?next=/app" className="btn-primary site-cta-sm text-xs">
+              {t.nav.login}
             </AppLink>
-          )}
-          {!loading && user && (
-            <Link href="/app" className="btn-primary site-cta-sm text-xs">
-              {t.landing.ctaCalculator}
-            </Link>
           )}
         </div>
       </div>
+    </header>
 
       {mobileOpen && (
         <div className="site-mobile-nav md:hidden" role="dialog" aria-modal="true">
@@ -167,25 +146,30 @@ export function SiteHeader(_props?: Props) {
                 ✕
               </button>
             </div>
-            <nav className="flex flex-col gap-1">{navLinks}</nav>
+            <nav className="flex flex-col gap-1">
+              {siteMenuLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="site-nav-link"
+                  onClick={closeMobile}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <AppLink href="/app" className="site-nav-terminal-cta mt-2" onClick={closeMobile}>
+                {t.landing.ctaCalculator}
+              </AppLink>
+            </nav>
             <div className="mt-6 pt-4 border-t border-border/60 space-y-2">
               {!loading && isGuest && (
-                <>
-                  <AppLink
-                    href="/login?next=/app"
-                    className="block text-center site-nav-link py-2"
-                    onClick={closeMobile}
-                  >
-                    {t.nav.login}
-                  </AppLink>
-                  <AppLink
-                    href="/register?next=/app"
-                    className="btn-primary w-full text-center block py-2.5"
-                    onClick={closeMobile}
-                  >
-                    {t.nav.signup}
-                  </AppLink>
-                </>
+                <AppLink
+                  href="/login?next=/app"
+                  className="btn-primary w-full text-center block py-2.5"
+                  onClick={closeMobile}
+                >
+                  {t.nav.login}
+                </AppLink>
               )}
               {!loading && user && (
                 <>
@@ -196,21 +180,13 @@ export function SiteHeader(_props?: Props) {
                   >
                     {userLabel}
                   </Link>
-                  {isTrialExpired ? (
+                  {isTrialExpired && (
                     <Link
                       href="/pricing"
                       className="btn-primary w-full text-center block py-2.5"
                       onClick={closeMobile}
                     >
                       {t.landing.ctaChoosePlan}
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/app"
-                      className="btn-primary w-full text-center block py-2.5"
-                      onClick={closeMobile}
-                    >
-                      {t.landing.ctaCalculator}
                     </Link>
                   )}
                 </>
@@ -219,6 +195,6 @@ export function SiteHeader(_props?: Props) {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

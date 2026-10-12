@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { LegalDocSections } from "@/components/LegalDocSections";
 import { LegalPageShell } from "@/components/LegalPageShell";
-import { legalCopy } from "@/lib/i18n/legalContent";
+import { LegalSellerRef } from "@/components/LegalSellerRef";
+import { privacyPageCopy } from "@/lib/i18n/legalPrivacySections";
 import { useLocale } from "@/lib/i18n";
 import { SUPPORT_EMAIL } from "@/lib/supportContact";
 
 export function PrivacyPageContent() {
   const { locale } = useLocale();
-  const c = legalCopy[locale].privacy;
+  const c = privacyPageCopy[locale];
 
   useEffect(() => {
     document.title = c.metaTitle;
@@ -17,18 +19,9 @@ export function PrivacyPageContent() {
 
   return (
     <LegalPageShell title={c.title} subtitle={c.subtitle}>
-      <p>{c.intro}</p>
-      <h2 className="text-lg font-semibold text-white pt-4">{c.collectHeading}</h2>
-      <ul className="list-disc pl-5 space-y-1">
-        {c.collectItems.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-      <h2 className="text-lg font-semibold text-white pt-4">{c.purposeHeading}</h2>
-      <p>{c.purposeBody}</p>
-      <h2 className="text-lg font-semibold text-white pt-4">{c.thirdPartyHeading}</h2>
-      <p>{c.thirdPartyBody}</p>
-      <h2 className="text-lg font-semibold text-white pt-4">{c.rightsHeading}</h2>
+      <LegalDocSections sections={c.sections} />
+
+      <h2 className="text-lg font-semibold text-white pt-6">{c.rightsHeading}</h2>
       <p>
         {c.rightsIntro}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="text-accent hover:underline">
@@ -40,7 +33,10 @@ export function PrivacyPageContent() {
         </Link>
         .
       </p>
-      <p className="text-xs text-muted pt-6">{c.updated}</p>
+
+      <LegalSellerRef text={c.sellerRefText} linkLabel={c.sellerRefLink} />
+
+      <p className="text-[11px] sm:text-xs text-muted pt-2">{c.updated}</p>
     </LegalPageShell>
   );
 }

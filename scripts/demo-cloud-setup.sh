@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Демо-облако: market-схема + 3 монеты × 30 дней в Supabase (малый объём).
+# Демо / prod seed: market-схема + N монет × M дней (по умолчанию 5 × 60).
 #
 # Использование — Session pooler (порт 5432, не 6543!):
 #   DATABASE_URL='postgresql://postgres.xwclvdckofcvnwkaqemq:...@aws-0-eu-west-1.pooler.supabase.com:5432/postgres' \
@@ -16,8 +16,8 @@ if [ -z "${DATABASE_URL:-}" ]; then
 fi
 
 export PYTHONPATH="$ROOT/packages/exchange-sdk:$ROOT/services/market-data:${PYTHONPATH:-}"
-DAYS="${1:-30}"
-SYMS="${2:-BTCUSDT,ETHUSDT,SOLUSDT}"
+DAYS="${1:-60}"
+SYMS="${2:-BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT}"
 
 echo "→ 1/2  Таблицы market.* в Supabase..."
 node scripts/migrate/apply-market-demo.js
@@ -28,7 +28,9 @@ bash services/market-data/run.sh backfill-symbols "$SYMS" "$DAYS"
 python3 - <<'PY'
 import os, psycopg2
 url = os.environ["DATABASE_URL"]
-conn = psycopg2.connect(url, sslmode="require")
+no_ssl = any(x in url for x in ("localhost", "127.0.0.1", "@postgres:", "postgresql://reboundlab:"))
+connect_kw = {} if no_ssl else {"sslmode": "require"}
+conn = psycopg2.connect(url, **connect_kw)
 cur = conn.cursor()
 cur.execute("""
   SELECT tp.symbol, COUNT(c.open_time), MIN(c.open_time)::date, MAX(c.open_time)::date

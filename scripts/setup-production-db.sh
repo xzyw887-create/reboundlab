@@ -18,8 +18,10 @@ echo "→ Миграция схем (users, plans, market, history)..."
 node scripts/migrate/apply-neon.js
 
 if [ "${1:-}" = "--with-demo-candles" ]; then
-  echo "→ Загрузка BTC/ETH/SOL × 30 дней (может занять несколько минут)..."
-  bash scripts/demo-cloud-setup.sh 30
+  DAYS="${PROD_MARKET_DAYS:-60}"
+  SYMS="${PROD_MARKET_SYMBOLS:-BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT}"
+  echo "→ Загрузка ${SYMS} × ${DAYS} дней (может занять 10–40 мин)..."
+  bash scripts/demo-cloud-setup.sh "$DAYS" "$SYMS"
 fi
 
 echo ""

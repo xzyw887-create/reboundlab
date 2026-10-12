@@ -13,7 +13,7 @@ function AuthLoading() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<AuthLoading />}>
-      <AuthForm mode="login" />
+      <AuthForm />
     </Suspense>
   );
 }

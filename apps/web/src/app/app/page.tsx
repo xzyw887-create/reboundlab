@@ -645,7 +645,7 @@ export default function HomePage() {
                   {t.landing.demo}
                 </span>
                 <Link href="/login?next=/app" className="btn-primary site-cta-sm text-xs">
-                  {t.nav.signup}
+                  {t.nav.login}
                 </Link>
               </div>
             )}
@@ -657,7 +657,7 @@ export default function HomePage() {
         <div className="bg-sky-950/50 border-b border-sky-700/40 px-4 py-2.5 text-center text-sm text-sky-100">
           {t.app.demoBanner}{" "}
           <Link href="/login?next=/app" className="text-accent font-medium underline">
-            {t.nav.signup}
+            {t.nav.login}
           </Link>
         </div>
       )}
@@ -712,7 +712,7 @@ export default function HomePage() {
                 <div className="card-pro-body text-center py-10 space-y-3">
                   <p className="text-sm text-muted">{t.history.loginRequired}</p>
                   <Link href="/login?next=/app" className="btn-primary inline-block px-6">
-                    {t.nav.signup}
+                    {t.nav.login}
                   </Link>
                 </div>
               </div>

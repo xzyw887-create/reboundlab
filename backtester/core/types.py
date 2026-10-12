@@ -90,6 +90,8 @@ class SimulationResult:
     total_trades: int
     winning_trades: int
     liquidated_trades: int
+    """Full account equity (cash + margin + unrealized) per bar."""
+    equity_curve: list[PnlSnapshot] = field(default_factory=list)
     liquidated_symbol: Optional[str] = None
     """Full account equity at end (cash + margins + unrealized on open)."""
     realized_balance: Decimal = Decimal("0")

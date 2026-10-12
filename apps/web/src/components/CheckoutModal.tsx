@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isBillingTestCharge } from "@/lib/billingCharge";
 import type { SubscriptionPlan } from "@/lib/subscriptionTiers";
 import { planCheckoutCharge } from "@/lib/localizedPlans";
 import { useLocale } from "@/lib/i18n";
@@ -10,6 +11,7 @@ interface Props {
   plan: SubscriptionPlan | null;
   loading: boolean;
   error: string | null;
+  useYookassa?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -19,6 +21,7 @@ export function CheckoutModal({
   plan,
   loading,
   error,
+  useYookassa = false,
   onClose,
   onConfirm,
 }: Props) {
@@ -40,6 +43,7 @@ export function CheckoutModal({
   if (!open || !plan) return null;
 
   const charge = planCheckoutCharge(plan, t);
+  const testCharge = isBillingTestCharge(plan.tier);
 
   return (
     <div
@@ -63,12 +67,25 @@ export function CheckoutModal({
         </header>
 
         <div className="checkout-body space-y-4">
-          <p className="text-sm text-muted leading-relaxed">
-            Оплата-заглушка (без списания с карты). После «Оплатить» тариф активируется в аккаунте:
-            период — календарный месяц от <strong className="text-gray-300">дня первой оплаты</strong>{" "}
-            (например, 10-е → до 10-го следующего месяца). Апгрейд Basic→Pro сохраняет ту же дату
-            окончания. Реальная карта — после ЮKassa.
-          </p>
+          {testCharge && (
+            <p className="text-xs text-amber-200/90 bg-amber-950/40 border border-amber-700/40 rounded-lg px-3 py-2">
+              Тестовая сумма к оплате — {charge}. На карточках тарифа указана полная цена; списание
+              идёт по сумме на сервере.
+            </p>
+          )}
+
+          {useYookassa ? (
+            <p className="text-sm text-muted leading-relaxed">
+              Вы перейдёте на защищённую страницу <strong className="text-gray-300">ЮKassa</strong>{" "}
+              для оплаты картой. После успешного платежа тариф активируется автоматически; период
+              подписки — календарный месяц от дня оплаты.
+            </p>
+          ) : (
+            <p className="text-sm text-muted leading-relaxed">
+              Режим разработки: без списания с карты. После «Оплатить» тариф активируется в
+              аккаунте (календарный месяц от «оплаты»).
+            </p>
+          )}
 
           <div className="checkout-summary">
             <div className="flex justify-between text-sm">
@@ -81,22 +98,24 @@ export function CheckoutModal({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="block space-y-1">
-              <span className="text-xs text-muted">Номер карты</span>
-              <input type="text" placeholder="4242 4242 4242 4242" defaultValue="4242 4242 4242 4242" />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+          {!useYookassa && (
+            <div className="space-y-3">
               <label className="block space-y-1">
-                <span className="text-xs text-muted">Срок</span>
-                <input type="text" placeholder="12/28" defaultValue="12/28" />
+                <span className="text-xs text-muted">Номер карты (демо)</span>
+                <input type="text" placeholder="4242 4242 4242 4242" defaultValue="4242 4242 4242 4242" />
               </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-muted">CVC</span>
-                <input type="text" placeholder="123" defaultValue="123" />
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted">Срок</span>
+                  <input type="text" placeholder="12/28" defaultValue="12/28" />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted">CVC</span>
+                  <input type="text" placeholder="123" defaultValue="123" />
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-300 bg-red-950/40 border border-red-800/50 rounded-xl p-2">
@@ -110,12 +129,12 @@ export function CheckoutModal({
             onClick={onConfirm}
             className="btn-primary w-full"
           >
-            {loading ? "…" : `${t.pricingUi.pay} ${charge}`}
+            {loading
+              ? "…"
+              : useYookassa
+                ? `Перейти к оплате ${charge}`
+                : `${t.pricingUi.pay} ${charge}`}
           </button>
-
-          <p className="text-[11px] text-center text-muted">
-            На этапе 2 подключим ЮKassa / Stripe — карта будет списываться по-настоящему
-          </p>
         </div>
       </div>
     </div>

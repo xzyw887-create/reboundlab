@@ -1,8 +1,8 @@
 import { ApiError } from "@/lib/apiErrors";
 import { query } from "@/lib/db";
+import { TRIAL_DURATION_DAYS } from "@/lib/productPolicy";
 
-/** Пробный период после первой регистрации (Telegram). */
-export const TRIAL_DURATION_DAYS = 1;
+export { TRIAL_DURATION_DAYS };
 
 let schemaEnsured = false;
 
@@ -22,7 +22,7 @@ export async function ensureTrialPolicySchema(): Promise<void> {
     SET features = jsonb_set(
       COALESCE(features, '{}'::jsonb),
       '{trial_days}',
-      '1'::jsonb,
+      '${TRIAL_DURATION_DAYS}'::jsonb,
       true
     )
     WHERE tier = 'trial'

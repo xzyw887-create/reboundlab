@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { LocaleProvider } from "@/lib/i18n";
+import { trialCopy } from "@/lib/productPolicy";
 import "./globals.css";
+
+const metaTrial = trialCopy("en");
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -10,8 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "BackTest Pro — Crypto Futures Backtesting",
-  description:
-    "Professional crypto strategy backtesting. 1-day free trial. Basic & Pro plans.",
+  description: metaTrial.metaDescriptionTrial,
   icons: {
     icon: "/brand/logo.png",
     apple: "/brand/logo.png",

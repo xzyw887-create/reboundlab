@@ -4,12 +4,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        surface: "#0b0e14",
-        panel: "#121820",
-        "panel-inner": "#1a212f",
-        border: "#1e2d42",
-        muted: "#8892b0",
-        accent: "#00a3ff",
+        surface: "#08090b",
+        panel: "#0f1114",
+        "panel-inner": "#14171c",
+        border: "#1e2228",
+        muted: "#7a8494",
+        accent: "#2563eb",
         gold: "#f5a623",
       },
       fontFamily: {
@@ -21,10 +21,18 @@ module.exports = {
           "Roboto",
           "sans-serif",
         ],
+        mono: [
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "monospace",
+        ],
       },
       boxShadow: {
-        glow: "0 0 20px rgba(0, 163, 255, 0.25)",
-        "glow-sm": "0 0 12px rgba(0, 163, 255, 0.2)",
+        glow: "0 1px 0 rgba(255, 255, 255, 0.04) inset",
+        "glow-sm": "0 1px 0 rgba(255, 255, 255, 0.03) inset",
       },
     },
   },

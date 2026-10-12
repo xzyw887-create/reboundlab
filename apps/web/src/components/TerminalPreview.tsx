@@ -232,7 +232,7 @@ export function TerminalPreview() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="landing-preview-live" aria-hidden />
-            <span className="label-caps text-sky-300 truncate">{t.landing.previewLabel}</span>
+            <span className="label-caps text-muted truncate">{t.landing.previewLabel}</span>
           </div>
           <span className="pill-tag">Pro</span>
         </div>
@@ -245,13 +245,12 @@ export function TerminalPreview() {
           >
             <defs>
               <linearGradient id="landing-chart-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0, 163, 255, 0.22)" />
-                <stop offset="100%" stopColor="rgba(0, 163, 255, 0)" />
+                <stop offset="0%" stopColor="rgba(37, 99, 235, 0.18)" />
+                <stop offset="100%" stopColor="rgba(37, 99, 235, 0)" />
               </linearGradient>
               <linearGradient id="landing-chart-line" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#00a3ff" />
-                <stop offset="55%" stopColor="#8b5cf6" />
-                <stop offset="100%" stopColor="#34d399" />
+                <stop offset="0%" stopColor="#2563eb" />
+                <stop offset="100%" stopColor="#2563eb" />
               </linearGradient>
             </defs>
 

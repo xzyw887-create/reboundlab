@@ -90,6 +90,7 @@ class SingleCoinSimulator:
         position: OpenPosition | None = None
         trades: list[Trade] = []
         pnl_curve: list[PnlSnapshot] = []
+        equity_curve: list[PnlSnapshot] = []
         liquidated = False
         liquidated_at: datetime | None = None
         entry_tracker = DropFromPeakTracker(p.entry_timeframe)
@@ -112,9 +113,9 @@ class SingleCoinSimulator:
                     cash = Decimal("0")
                     if trades and trades[-1].close_price is not None:
                         entry_tracker.reset_to(trades[-1].close_price)
-                    pnl_curve.append(
-                        PnlSnapshot(candle.open_time, Decimal("0"), Decimal("-100"))
-                    )
+                    snap = PnlSnapshot(candle.open_time, Decimal("0"), Decimal("-100"))
+                    pnl_curve.append(snap)
+                    equity_curve.append(snap)
                     continue
                 if closed and trades[-1].close_price is not None:
                     entry_tracker.reset_to(trades[-1].close_price)
@@ -137,7 +138,10 @@ class SingleCoinSimulator:
                 else:
                     balance = cash
                     last_realized = cash
-                pnl_curve.append(self._snapshot(candle.open_time, balance, initial))
+                t = candle.open_time
+                pnl_curve.append(self._snapshot(t, balance, initial))
+                eq = self._equity(cash, position, candle.close)
+                equity_curve.append(self._snapshot(t, eq, initial))
 
         open_trade_at_end = position is not None and not liquidated
         if open_trade_at_end:
@@ -180,6 +184,7 @@ class SingleCoinSimulator:
             liquidated_at=liquidated_at,
             trades=trades,
             pnl_curve=pnl_curve,
+            equity_curve=equity_curve,
             total_trades=len(trades),
             winning_trades=winning,
             liquidated_trades=liq_trades,

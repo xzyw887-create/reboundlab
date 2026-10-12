@@ -39,5 +39,19 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
 
+  # Одноразовая загрузка свечей: docker compose -f ... --profile seed run --rm market-seed
+  market-seed:
+    profiles: ["seed"]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.market-seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ../../.env
+    environment:
+      DATABASE_URL: postgresql://reboundlab:${POSTGRES_PASSWORD}@postgres:5432/reboundlab
+
 volumes:
   pgdata:

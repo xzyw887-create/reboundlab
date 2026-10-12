@@ -1,41 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import { Suspense } from "react";
 import { PricingWithCheckout } from "@/components/PricingWithCheckout";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { useAuthSession } from "@/lib/useAuthSession";
-import { planDisplayName } from "@/lib/selectedPlan";
-import { formatTpl, useLocale } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 
-export default function PricingPage() {
+function PricingContent() {
   const { t } = useLocale();
-  const { isGuest, isPaid, isTrialExpired, user } = useAuthSession();
-
-  const subtitle = isGuest
-    ? t.pricing.subtitle
-    : isPaid && user
-    ? formatTpl(t.pricing.subtitlePaid, { plan: planDisplayName(user.planTier) })
-    : isTrialExpired
-    ? t.pricing.subtitleExpired
-    : t.pricing.subtitleTrial;
 
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
 
       <main className="flex-1 max-w-6xl mx-auto px-4 py-10 sm:py-14 space-y-14 w-full">
-        <section className="text-center max-w-2xl mx-auto space-y-4">
-          <p className="label-caps text-accent">{t.pricing.eyebrow}</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight">
-            {t.pricing.title}
-          </h1>
-          <p className="text-muted text-base sm:text-lg">{subtitle}</p>
-          {!isGuest && !isTrialExpired && (
-            <Link href="/app" className="text-sm text-accent hover:text-accent/80">
-              {t.landing.ctaCalculator} →
-            </Link>
-          )}
+        <section className="text-center max-w-2xl mx-auto">
+          <h1 className="label-caps text-muted">{t.nav.pricing}</h1>
         </section>
 
         <PricingWithCheckout />
@@ -58,5 +38,13 @@ export default function PricingPage() {
 
       <SiteFooter />
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<p className="text-center text-muted py-20">…</p>}>
+      <PricingContent />
+    </Suspense>
   );
 }

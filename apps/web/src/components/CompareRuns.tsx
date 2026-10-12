@@ -85,8 +85,8 @@ function StrategySlotCard({
   showMetrics: boolean;
 }) {
   const { t } = useLocale();
-  const border = variant === "a" ? "border-accent/30" : "border-sky-500/30";
-  const titleClass = variant === "a" ? "text-accent" : "text-sky-300";
+  const border = "border-accent/30";
+  const titleClass = "text-accent";
   const title = variant === "a" ? t.compare.strategyA : t.compare.strategyB;
 
   return (

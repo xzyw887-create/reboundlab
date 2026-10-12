@@ -16,7 +16,9 @@ export interface MonthStats {
 }
 
 export interface BacktestAnalytics {
-  maxDrawdownPct: number;
+  maxRealizedDrawdownPct: number;
+  maxEquityDrawdownPct: number | null;
+  equityAtEndUsd: number;
   winRatePct: number | null;
   avgTradeUsd: number | null;
   totalFeesUsd: number;
@@ -134,8 +136,14 @@ export function computeBacktestAnalytics(result: BacktestResult): BacktestAnalyt
       trades: data.trades,
     }));
 
+  const equityCurve = result.equity_curve?.length
+    ? result.equity_curve
+    : result.pnl_curve;
+
   return {
-    maxDrawdownPct: computeMaxDrawdownPct(result.pnl_curve, deposit),
+    maxRealizedDrawdownPct: computeMaxDrawdownPct(result.pnl_curve, deposit),
+    maxEquityDrawdownPct: computeMaxDrawdownPct(equityCurve, deposit),
+    equityAtEndUsd: s.final_balance,
     winRatePct: closedTrades > 0 ? (winning / closedTrades) * 100 : null,
     avgTradeUsd: closedTrades > 0 ? closedNet / closedTrades : null,
     totalFeesUsd,

@@ -96,3 +96,22 @@ https://backtestpro.ru/api/health → `"ok":true`
 ## Переменные на сервере
 
 Редактировать только на VPS: `/opt/reboundlab/.env` → затем шаг 2 (без rsync, если меняли только `.env`).
+
+## Свечи для бэктеста (один раз или после пустой БД)
+
+После миграций (`DATABASE_URL=… node scripts/migrate/apply-neon.js` или `scripts/setup-production-db.sh`) на **VPS**:
+
+```bash
+cd /opt/reboundlab
+set -a && source .env && set +a
+docker compose -f deploy/docker/docker-compose.prod.yml --profile seed run --rm market-seed
+```
+
+По умолчанию **BTC, ETH, SOL, BNB, XRP × 60 дней** (1m). Переопределение:
+
+```bash
+PROD_MARKET_DAYS=45 PROD_MARKET_SYMBOLS=BTCUSDT,ETHUSDT \
+  docker compose -f deploy/docker/docker-compose.prod.yml --profile seed run --rm market-seed
+```
+
+С Mac можно то же через SSH после `git push`, либо локально с `DATABASE_URL` на прод (если Postgres доступен).

@@ -4,10 +4,18 @@ import { apiMessage, resolveErrorMessage } from "@/lib/apiErrors";
 import { localeFromRequest } from "@/lib/apiLocale";
 import { authUserJson, getAuthUser } from "@/lib/auth";
 import { activateSubscription } from "@/lib/subscriptionActivate";
+import { checkoutStubAllowed } from "@/lib/yookassaConfig";
 
 export async function POST(req: NextRequest) {
   const locale = localeFromRequest(req);
   try {
+    if (!checkoutStubAllowed()) {
+      return NextResponse.json(
+        { error: apiMessage(locale, "PAYMENT_PROVIDER_REQUIRED") },
+        { status: 403 }
+      );
+    }
+
     const user = await getAuthUser();
     if (!user) {
       return NextResponse.json(

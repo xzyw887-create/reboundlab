@@ -153,6 +153,8 @@ export interface BacktestResult {
   candles_by_symbol: Record<string, Candle[]>;
   candles_1m_by_symbol?: Record<string, Candle[]>;
   pnl_curve: { time: number; balance: number; pnl_pct: number }[];
+  /** Full account equity per bar (cash + margin + unrealized). */
+  equity_curve?: { time: number; balance: number; pnl_pct: number }[];
   trades: Trade[];
   trades_by_symbol: Record<string, Trade[]>;
   markers: Marker[];

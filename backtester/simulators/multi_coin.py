@@ -83,6 +83,7 @@ class MultiCoinSimulator:
         trades: list[Trade] = []
         trades_by_symbol: dict[str, list[Trade]] = {s: [] for s in symbols}
         pnl_curve: list[PnlSnapshot] = []
+        equity_curve: list[PnlSnapshot] = []
         liquidated = False
         liquidated_at: datetime | None = None
         liquidated_symbol: str | None = None
@@ -134,7 +135,9 @@ class MultiCoinSimulator:
                 liquidated_at = t
                 liquidated_symbol = liq_sym
                 positions.clear()
-                pnl_curve.append(PnlSnapshot(t, Decimal("0"), Decimal("-100")))
+                snap = PnlSnapshot(t, Decimal("0"), Decimal("-100"))
+                pnl_curve.append(snap)
+                equity_curve.append(snap)
                 break
 
             # --- Process each open position: funding, exits, averaging ---
@@ -233,6 +236,8 @@ class MultiCoinSimulator:
                 balance = cash
                 last_realized = cash
             pnl_curve.append(self._snapshot(t, balance, initial))
+            eq = self._total_equity(cash, positions, minute_candles)
+            equity_curve.append(self._snapshot(t, eq, initial))
 
         open_at_end = bool(positions) and not liquidated
         if open_at_end:
@@ -280,6 +285,7 @@ class MultiCoinSimulator:
             trades_by_symbol=trades_by_symbol,
             candles_by_symbol={s: candles_by_symbol[s] for s in symbols},
             pnl_curve=pnl_curve,
+            equity_curve=equity_curve,
             total_trades=len(trades),
             winning_trades=winning,
             liquidated_trades=liq_trades,

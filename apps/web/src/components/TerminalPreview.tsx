@@ -204,11 +204,13 @@ function useCountUp(
 
 export function TerminalPreview() {
   const { t } = useLocale();
-  const [scene] = useState(() => generatePreviewScene());
+  /** Random scene only after mount — avoids SSR/client hydration mismatch. */
+  const [scene, setScene] = useState<PreviewScene | null>(null);
   const [statsActive, setStatsActive] = useState(false);
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
+    setScene(generatePreviewScene());
     const show = window.setTimeout(() => setStatsActive(true), 400);
     const done = window.setTimeout(() => setFinished(true), PREVIEW_ANIM_MS);
     return () => {
@@ -217,7 +219,7 @@ export function TerminalPreview() {
     };
   }, []);
 
-  const { pnl, trades, maxDd } = scene.stats;
+  const { pnl, trades, maxDd } = scene?.stats ?? { pnl: 0, trades: 0, maxDd: 0 };
   const pnlDisplay = useCountUp(pnl, 1800, 1, statsActive);
   const tradesDisplay = useCountUp(trades, 1600, 0, statsActive);
   const maxDdDisplay = useCountUp(maxDd, 1400, 0, statsActive);
@@ -265,6 +267,8 @@ export function TerminalPreview() {
               />
             ))}
 
+            {scene && (
+              <>
             <path
               d={scene.areaPath}
               fill="url(#landing-chart-fill)"
@@ -280,8 +284,10 @@ export function TerminalPreview() {
               pathLength={PATH_LEN}
               className="landing-chart-line"
             />
+              </>
+            )}
 
-            {scene.markers.map((m, i) => (
+            {scene?.markers.map((m, i) => (
               <g key={i} transform={`translate(${m.x}, ${m.y})`}>
                 <g
                   className="landing-chart-marker"

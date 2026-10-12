@@ -22,7 +22,7 @@ export function devLocalAuthAllowed(): boolean {
 
 export async function loginOrCreateDevLocalUser(): Promise<AuthUser> {
   if (!devLocalAuthAllowed()) {
-    throw new ApiError("NOT_FOUND");
+    throw new ApiError("UNAUTHORIZED");
   }
 
   await ensureTelegramAuthSchema();

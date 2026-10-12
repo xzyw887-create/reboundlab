@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useLocale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/en";
 import { productShowcaseImages } from "@/lib/productShowcaseImages";
@@ -263,7 +263,25 @@ function SlideVisual({
 export function ProductShowcase() {
   const { t } = useLocale();
   const ps = t.landing.productShowcase;
-  const [demo] = useState(() => generateProductShowcaseDemo());
+  const [demo, setDemo] = useState<ProductShowcaseDemo | null>(null);
+
+  useEffect(() => {
+    setDemo(generateProductShowcaseDemo());
+  }, []);
+
+  if (!demo) {
+    return (
+      <section id="features" className="landing-section product-showcase" aria-busy="true">
+        <div className="landing-container">
+          <div className="max-w-2xl mb-12 md:mb-16 space-y-3">
+            <p className="label-caps">{ps.label}</p>
+            <h2 className="text-2xl sm:text-3xl font-medium text-gray-50 leading-snug">{ps.title}</h2>
+            <p className="text-muted leading-relaxed">{ps.lead}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="features" className="landing-section product-showcase">

@@ -1,7 +1,10 @@
 import { randomUUID } from "crypto";
 import type { PlanTier } from "@/lib/subscriptionTiers";
 import { chargeRubForTier } from "@/lib/billingCharge";
-import { insertBillingPayment } from "@/lib/billingPayments";
+import {
+  attachYooPaymentId,
+  insertPendingBillingPayment,
+} from "@/lib/billingPayments";
 import { yookassaConfigured, yookassaReturnUrl } from "@/lib/yookassaConfig";
 
 type YooAmount = { value: string; currency: string };
@@ -37,10 +40,15 @@ export async function createYooKassaPayment(
   const amountRub = chargeRubForTier(tier);
   if (amountRub <= 0) throw new Error("INVALID_TIER");
 
+  const localPaymentId = await insertPendingBillingPayment(userId, tier, amountRub);
+
   const body: Record<string, unknown> = {
     amount: { value: amountRub.toFixed(2), currency: "RUB" },
     capture: true,
-    confirmation: { type: "redirect", return_url: yookassaReturnUrl() },
+    confirmation: {
+      type: "redirect",
+      return_url: yookassaReturnUrl(localPaymentId),
+    },
     description: `BackTest Pro — ${tierLabel(tier)}`,
     metadata: {
       user_id: userId,
@@ -86,7 +94,7 @@ export async function createYooKassaPayment(
     throw new Error("YOOKASSA_NO_CONFIRMATION_URL");
   }
 
-  const localPaymentId = await insertBillingPayment(userId, tier, amountRub, data.id);
+  await attachYooPaymentId(localPaymentId, data.id);
 
   return {
     localPaymentId,

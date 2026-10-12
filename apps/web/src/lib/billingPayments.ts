@@ -37,6 +37,36 @@ export type BillingPaymentRow = {
   activated_at: Date | null;
 };
 
+export async function insertPendingBillingPayment(
+  userId: string,
+  tier: PlanTier,
+  amountRub: number
+): Promise<string> {
+  await ensureBillingPaymentsSchema();
+  const rows = await query<{ id: string }>(
+    `INSERT INTO core.billing_payments (user_id, tier, amount_rub, status)
+     VALUES ($1, $2, $3, 'pending')
+     RETURNING id`,
+    [userId, tier, amountRub]
+  );
+  const id = rows[0]?.id;
+  if (!id) throw new Error("PAYMENT_ROW_FAILED");
+  return id;
+}
+
+export async function attachYooPaymentId(
+  localPaymentId: string,
+  yookassaPaymentId: string
+): Promise<void> {
+  await ensureBillingPaymentsSchema();
+  await query(
+    `UPDATE core.billing_payments
+     SET yookassa_payment_id = $2
+     WHERE id = $1 AND yookassa_payment_id IS NULL`,
+    [localPaymentId, yookassaPaymentId]
+  );
+}
+
 export async function insertBillingPayment(
   userId: string,
   tier: PlanTier,

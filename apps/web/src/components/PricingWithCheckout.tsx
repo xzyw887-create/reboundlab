@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { PricingTierGrid } from "@/components/PricingTierGrid";
 import { localizedPlans } from "@/lib/localizedPlans";
@@ -17,24 +17,73 @@ const PENDING_PAYMENT_KEY = "btp_pending_payment";
 
 type BillingMode = { yookassa: boolean; checkoutStub: boolean };
 
+type AuthSnapshot = {
+  planTier: PlanTier;
+  trialExpired: boolean;
+  subscriptionExpired: boolean;
+};
+
+function persistPendingPaymentId(id: string) {
+  sessionStorage.setItem(PENDING_PAYMENT_KEY, id);
+  try {
+    localStorage.setItem(PENDING_PAYMENT_KEY, id);
+  } catch {
+    /* private mode */
+  }
+}
+
+function clearPendingPaymentId() {
+  sessionStorage.removeItem(PENDING_PAYMENT_KEY);
+  try {
+    localStorage.removeItem(PENDING_PAYMENT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function readPendingPaymentId(searchParams: URLSearchParams): string | null {
+  const fromUrl = searchParams.get("id")?.trim();
+  if (fromUrl) return fromUrl;
+  const fromSession = sessionStorage.getItem(PENDING_PAYMENT_KEY);
+  if (fromSession) return fromSession;
+  try {
+    return localStorage.getItem(PENDING_PAYMENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function goToTerminal() {
+  window.location.replace("/app");
+}
+
+function hasActivePaidPlan(user: AuthSnapshot | null): boolean {
+  if (!user || user.trialExpired || user.subscriptionExpired) return false;
+  return user.planTier === "basic" || user.planTier === "pro";
+}
+
 export function PricingWithCheckout() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, locale } = useLocale();
   const [authReady, setAuthReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthSnapshot | null>(null);
   const [billingMode, setBillingMode] = useState<BillingMode | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [returnPolling, setReturnPolling] = useState(false);
+  const paymentReturnStarted = useRef(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : { user: null }))
       .then((data) => {
-        setLoggedIn(Boolean(data.user));
+        const u = data.user as AuthSnapshot | null;
+        setLoggedIn(Boolean(u));
+        setAuthUser(u);
         setAuthReady(true);
       })
       .catch(() => setAuthReady(true));
@@ -46,9 +95,13 @@ export function PricingWithCheckout() {
   }, []);
 
   const pollPaymentReturn = useCallback(async () => {
-    const paymentId = sessionStorage.getItem(PENDING_PAYMENT_KEY);
+    const paymentId = readPendingPaymentId(searchParams);
     if (!paymentId) {
-      setError("Не найден id платежа. Если оплата прошла — напишите в поддержку.");
+      if (hasActivePaidPlan(authUser)) {
+        goToTerminal();
+        return;
+      }
+      setError("Не найден id платежа. Если оплата прошла — откройте терминал из меню или напишите в поддержку.");
       return;
     }
 
@@ -59,30 +112,54 @@ export function PricingWithCheckout() {
       const res = await apiFetch(`/api/billing/payment?id=${encodeURIComponent(paymentId)}`);
       const data = await res.json();
       if (res.ok && data.activated) {
-        sessionStorage.removeItem(PENDING_PAYMENT_KEY);
-        setSuccess(
-          formatTpl(t.pricingUi.activated, {
-            name: data.tier === "pro" ? "Pro" : "Basic",
-          })
-        );
+        clearPendingPaymentId();
         setReturnPolling(false);
-        setTimeout(() => router.push("/app"), 900);
+        goToTerminal();
+        return;
+      }
+      if (hasActivePaidPlan(authUser)) {
+        clearPendingPaymentId();
+        setReturnPolling(false);
+        goToTerminal();
         return;
       }
       await new Promise((r) => setTimeout(r, 2500));
+      const me = await fetch("/api/auth/me")
+        .then((r) => (r.ok ? r.json() : { user: null }))
+        .catch(() => ({ user: null }));
+      const u = me.user as AuthSnapshot | null;
+      if (u) setAuthUser(u);
+      if (hasActivePaidPlan(u)) {
+        clearPendingPaymentId();
+        setReturnPolling(false);
+        goToTerminal();
+        return;
+      }
     }
 
     setReturnPolling(false);
+    if (hasActivePaidPlan(authUser)) {
+      goToTerminal();
+      return;
+    }
     setError(
-      "Оплата ещё обрабатывается. Обновите страницу через минуту или напишите в поддержку с email аккаунта."
+      "Оплата ещё обрабатывается. Обновите страницу через минуту или откройте /app — если тариф уже Pro/Basic."
     );
-  }, [router, t.pricingUi.activated]);
+  }, [authUser, searchParams, t.pricingUi.activated]);
 
   useEffect(() => {
     if (searchParams.get("payment") !== "return") return;
-    if (!loggedIn) return;
+    if (!authReady || !loggedIn) return;
+    if (paymentReturnStarted.current) return;
+    paymentReturnStarted.current = true;
+
+    if (hasActivePaidPlan(authUser)) {
+      clearPendingPaymentId();
+      goToTerminal();
+      return;
+    }
     void pollPaymentReturn();
-  }, [searchParams, loggedIn, pollPaymentReturn]);
+  }, [searchParams, authReady, loggedIn, authUser, pollPaymentReturn]);
 
   function startCheckout(tier: PlanTier) {
     const plan = localizedPlans(t, locale).find((p) => p.tier === tier) ?? planByTier(tier);
@@ -112,7 +189,7 @@ export function PricingWithCheckout() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
 
-        sessionStorage.setItem(PENDING_PAYMENT_KEY, data.paymentId);
+        persistPendingPaymentId(data.paymentId);
         window.location.href = data.confirmationUrl;
         return;
       }
@@ -127,8 +204,8 @@ export function PricingWithCheckout() {
         if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
 
         setCheckoutPlan(null);
-        setSuccess(formatTpl(t.pricingUi.activated, { name: checkoutPlan.name }));
-        setTimeout(() => router.push("/app"), 900);
+        setLoading(false);
+        goToTerminal();
         return;
       }
 

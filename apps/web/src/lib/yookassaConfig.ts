@@ -4,12 +4,15 @@ export function yookassaConfigured(): boolean {
   );
 }
 
-export function yookassaReturnUrl(): string {
+export function yookassaReturnUrl(localPaymentId?: string): string {
   const base =
     process.env.YOOKASSA_RETURN_URL?.trim() ||
     `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pricing`;
   const u = new URL(base.includes("://") ? base : `https://${base}`);
   u.searchParams.set("payment", "return");
+  if (localPaymentId) {
+    u.searchParams.set("id", localPaymentId);
+  }
   return u.toString();
 }
 

@@ -216,13 +216,6 @@ export default function HomePage() {
     setParams((p) => clampParamsToPlan(p, tier));
   };
 
-  async function logout() {
-    await apiFetch("/api/auth/logout", { method: "POST" });
-    setAuthUser(null);
-    setHistoryRuns([]);
-    router.refresh();
-  }
-
   async function loadHistory() {
     const user = authUserRef.current;
     if (!user) {
@@ -622,22 +615,13 @@ export default function HomePage() {
           <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
             <LanguageSwitcher />
             {authUser ? (
-              <div className="flex items-center gap-2 text-xs">
-                <Link
-                  href="/account"
-                  className="pill-tag text-[10px] hover:border-accent/50 transition-colors"
-                  title={t.nav.account}
-                >
-                  {planDisplayName(effectiveTier)}
-                </Link>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="text-muted hover:text-accent whitespace-nowrap"
-                >
-                  {t.nav.logout}
-                </button>
-              </div>
+              <Link
+                href="/account"
+                className="pill-tag text-[10px] hover:border-accent/50 transition-colors"
+                title={t.nav.account}
+              >
+                {planDisplayName(effectiveTier)}
+              </Link>
             ) : (
               <div className="flex items-center gap-2 sm:gap-3">
                 <span className="hidden sm:inline-flex pill-tag text-[10px] text-accent/90 border-accent/30">

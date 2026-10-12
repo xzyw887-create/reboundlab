@@ -80,7 +80,7 @@ export function SiteHeader(_props?: Props) {
         </div>
 
         <nav className="site-nav hidden md:flex">
-          <AppLink href="/app" className="site-nav-terminal-cta hidden sm:inline-flex">
+          <AppLink href="/app" className="site-nav-terminal-cta inline-flex shrink-0">
             {t.landing.ctaCalculator}
           </AppLink>
           <LanguageSwitcher />
@@ -107,7 +107,13 @@ export function SiteHeader(_props?: Props) {
           )}
         </nav>
 
-        <div className="flex items-center gap-2 md:hidden shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:hidden shrink-0 min-w-0">
+          <AppLink
+            href="/app"
+            className="site-nav-terminal-cta inline-flex shrink-0 text-[11px] px-2.5 py-1.5"
+          >
+            {t.landing.ctaCalculator}
+          </AppLink>
           <LanguageSwitcher />
           {!loading && user && (
             <Link

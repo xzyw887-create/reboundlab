@@ -66,7 +66,7 @@ export function PricingWithCheckout() {
           })
         );
         setReturnPolling(false);
-        setTimeout(() => router.push("/account"), 900);
+        setTimeout(() => router.push("/app"), 900);
         return;
       }
       await new Promise((r) => setTimeout(r, 2500));
@@ -128,7 +128,7 @@ export function PricingWithCheckout() {
 
         setCheckoutPlan(null);
         setSuccess(formatTpl(t.pricingUi.activated, { name: checkoutPlan.name }));
-        setTimeout(() => router.push("/account"), 900);
+        setTimeout(() => router.push("/app"), 900);
         return;
       }
 

@@ -1,19 +1,25 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { AuthForm } from "@/components/AuthForm";
+import { AuthPageShell } from "@/components/AuthPageShell";
+import { emailPasswordAuthEnabled } from "@/lib/emailPasswordAuth";
 
-type SearchParams = Record<string, string | string[] | undefined>;
+function AuthLoading() {
+  return (
+    <AuthPageShell>
+      <p className="text-muted text-sm">…</p>
+    </AuthPageShell>
+  );
+}
 
-export default function RegisterPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const q = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (typeof value === "string") q.set(key, value);
-    else if (Array.isArray(value)) {
-      for (const v of value) q.append(key, v);
-    }
+export default function RegisterPage() {
+  if (!emailPasswordAuthEnabled()) {
+    redirect("/login");
   }
-  const qs = q.toString();
-  redirect(qs ? `/login?${qs}` : "/login");
+
+  return (
+    <Suspense fallback={<AuthLoading />}>
+      <AuthForm mode="register" />
+    </Suspense>
+  );
 }

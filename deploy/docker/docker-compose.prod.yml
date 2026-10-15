@@ -25,6 +25,7 @@ services:
       args:
         NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME:-}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://backtestpro.ru}
+        NEXT_PUBLIC_EMAIL_PASSWORD_AUTH: ${NEXT_PUBLIC_EMAIL_PASSWORD_AUTH:-}
     restart: unless-stopped
     depends_on:
       postgres:

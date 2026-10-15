@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AuthPageShell } from "@/components/AuthPageShell";
 import { useSearchParams } from "next/navigation";
@@ -8,14 +9,26 @@ import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { useLocale } from "@/lib/i18n";
 import { apiFetch } from "@/lib/clientFetch";
 import { showDevLocalAuthUi } from "@/lib/devLocalAuthFlags";
+import { showEmailPasswordAuthUi } from "@/lib/emailPasswordAuthFlags";
 
-export function AuthForm() {
+type AuthMode = "login" | "register";
+
+interface AuthFormProps {
+  mode?: AuthMode;
+}
+
+export function AuthForm({ mode = "login" }: AuthFormProps) {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/app";
   const [error, setError] = useState<string | null>(null);
   const [devLoading, setDevLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const devLocalUi = showDevLocalAuthUi();
+  const emailUi = showEmailPasswordAuthUi();
+  const isRegister = mode === "register";
 
   async function devLocalLogin() {
     setDevLoading(true);
@@ -31,19 +44,125 @@ export function AuthForm() {
     }
   }
 
+  async function submitEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailLoading(true);
+    setError(null);
+    try {
+      const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
+      const res = await apiFetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data.error || t.auth.errorGeneric;
+        throw new Error(
+          msg.includes("зарегистрирован") || msg.includes("registered")
+            ? `${msg} ${t.auth.tryLogin}`
+            : msg
+        );
+      }
+      window.location.href = next;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.auth.errorGeneric);
+      setEmailLoading(false);
+    }
+  }
+
   return (
     <AuthPageShell>
       <div className="card-pro w-full max-w-md">
         <div className="card-pro-body space-y-5">
           <div className="text-center space-y-2">
             <BrandLogo size="lg" className="mx-auto" />
-            <h1 className="title-gradient text-xl">{t.auth.loginTitle}</h1>
+            <h1 className="title-gradient text-xl">
+              {isRegister ? t.auth.registerTitle : t.auth.loginTitle}
+            </h1>
+            {!isRegister && (
+              <p className="text-sm text-muted">{t.auth.loginSubtitle}</p>
+            )}
+            {isRegister && (
+              <p className="text-sm text-muted">{t.auth.registerSubtitle}</p>
+            )}
           </div>
 
           {error && (
             <p className="text-sm text-red-300 bg-red-950/40 border border-red-800/50 rounded-xl p-2">
               {error}
             </p>
+          )}
+
+          {emailUi && (
+            <form onSubmit={submitEmail} className="space-y-4">
+              <label className="block space-y-1">
+                <span className="text-xs text-muted">{t.auth.emailLabel}</span>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted">{t.auth.passwordLabel}</span>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete={
+                    isRegister ? "new-password" : "current-password"
+                  }
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                {isRegister && (
+                  <span className="text-[11px] text-muted">
+                    {t.auth.passwordMinHint}
+                  </span>
+                )}
+              </label>
+              <button
+                type="submit"
+                disabled={emailLoading}
+                className="btn-primary w-full"
+              >
+                {emailLoading
+                  ? t.auth.loading
+                  : isRegister
+                    ? t.auth.createAccount
+                    : t.auth.signIn}
+              </button>
+            </form>
+          )}
+
+          {emailUi && (
+            <p className="text-center text-sm text-muted">
+              {isRegister ? (
+                <>
+                  {t.auth.haveAccount}{" "}
+                  <Link href="/login" className="text-accent hover:underline">
+                    {t.auth.signIn}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {t.auth.noAccount}{" "}
+                  <Link
+                    href="/register"
+                    className="text-accent hover:underline"
+                  >
+                    {t.auth.signupCta}
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
+
+          {emailUi && (
+            <p className="text-center text-xs text-muted">{t.auth.orDivider}</p>
           )}
 
           <TelegramLoginButton next={next} onError={setError} />

@@ -44,3 +44,20 @@ export function periodEndAfterRenewal(currentExpiresAt: Date, anchorDay: number)
 export function anchorDayFromDate(d: Date): number {
   return d.getUTCDate();
 }
+
+/** Годовая подписка: 12 календарных месяцев от первой оплаты */
+export function periodEndFromAnnualPayment(paidAt: Date, anchorDay: number): Date {
+  let end = periodEndFromPayment(paidAt, anchorDay);
+  for (let i = 0; i < 11; i++) {
+    end = periodEndAfterRenewal(end, anchorDay);
+  }
+  return end;
+}
+
+export function periodEndAfterAnnualRenewal(currentExpiresAt: Date, anchorDay: number): Date {
+  let end = periodEndAfterRenewal(currentExpiresAt, anchorDay);
+  for (let i = 0; i < 11; i++) {
+    end = periodEndAfterRenewal(end, anchorDay);
+  }
+  return end;
+}

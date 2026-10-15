@@ -4,7 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { PricingTierGrid } from "@/components/PricingTierGrid";
+import { formatRubAmount } from "@/lib/billingCharge";
+import { quoteCheckoutAmount } from "@/lib/billingCheckoutAmount";
+import type { BillingInterval } from "@/lib/billingInterval";
+import { displayMonthlyRub } from "@/lib/billingInterval";
 import { localizedPlans } from "@/lib/localizedPlans";
+import { paidTierState } from "@/lib/pricingEligibility";
 import {
   planByTier,
   type PlanTier,
@@ -21,6 +26,8 @@ type AuthSnapshot = {
   planTier: PlanTier;
   trialExpired: boolean;
   subscriptionExpired: boolean;
+  expiresAt: string | null;
+  billingAnchorDay: number | null;
 };
 
 function persistPendingPaymentId(id: string) {
@@ -75,7 +82,26 @@ export function PricingWithCheckout() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [returnPolling, setReturnPolling] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const paymentReturnStarted = useRef(false);
+
+  function displayPlans(): SubscriptionPlan[] {
+    return localizedPlans(t, locale).map((plan) => {
+      if (plan.tier !== "basic" && plan.tier !== "pro") return plan;
+      const catalog = planByTier(plan.tier)?.priceRub ?? 0;
+      if (catalog <= 0) return plan;
+      const showYear = billingInterval === "year";
+      const monthly = displayMonthlyRub(catalog, billingInterval);
+      return {
+        ...plan,
+        priceHeadline: formatRubAmount(monthly).replace(" ₽", ""),
+        pricePeriod: showYear ? "₽ / мес · оплата за год" : plan.pricePeriod,
+        priceNote: showYear
+          ? "При подключении списывается сумма за 12 месяцев со скидкой"
+          : plan.priceNote,
+      };
+    });
+  }
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -162,8 +188,12 @@ export function PricingWithCheckout() {
   }, [searchParams, authReady, loggedIn, authUser, pollPaymentReturn]);
 
   function startCheckout(tier: PlanTier) {
-    const plan = localizedPlans(t, locale).find((p) => p.tier === tier) ?? planByTier(tier);
+    const plan = displayPlans().find((p) => p.tier === tier) ?? planByTier(tier);
     if (!plan || plan.comingSoon || tier === "trial") return;
+    if (tier === "basic" || tier === "pro") {
+      const st = paidTierState(tier, authUser);
+      if (!st.enabled) return;
+    }
 
     if (!loggedIn) {
       router.push(`/login?plan=${tier}&next=/pricing`);
@@ -181,10 +211,18 @@ export function PricingWithCheckout() {
     setError(null);
     try {
       if (billingMode.yookassa) {
+        const interval =
+          authUser &&
+          authUser.planTier === "basic" &&
+          !authUser.subscriptionExpired &&
+          checkoutPlan.tier === "pro"
+            ? "month"
+            : billingInterval;
+
         const res = await apiFetch("/api/billing/create-payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tier: checkoutPlan.tier }),
+          body: JSON.stringify({ tier: checkoutPlan.tier, interval }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
@@ -218,6 +256,27 @@ export function PricingWithCheckout() {
 
   const useYookassa = Boolean(billingMode?.yookassa);
 
+  const checkoutChargeLabel =
+    checkoutPlan && authUser && (checkoutPlan.tier === "basic" || checkoutPlan.tier === "pro")
+      ? formatRubAmount(
+          quoteCheckoutAmount(
+            authUser,
+            checkoutPlan.tier,
+            authUser.planTier === "basic" &&
+              !authUser.subscriptionExpired &&
+              checkoutPlan.tier === "pro"
+              ? "month"
+              : billingInterval
+          ).amountRub
+        )
+      : null;
+
+  const hideBillingToggle =
+    authUser &&
+    ((authUser.planTier === "basic" && !authUser.subscriptionExpired) ||
+      (authUser.planTier === "pro" && !authUser.subscriptionExpired));
+  const showBillingToggle = !hideBillingToggle;
+
   return (
     <>
       {returnPolling && (
@@ -241,7 +300,56 @@ export function PricingWithCheckout() {
       {!authReady ? (
         <p className="text-center text-muted text-sm py-10">{t.pricingUi.loading}</p>
       ) : (
-        <PricingTierGrid onPurchase={startCheckout} />
+        <>
+          {showBillingToggle && (
+            <div className="flex justify-center mb-8">
+              <div
+                className="inline-flex rounded-xl border border-white/10 bg-black/30 p-1"
+                role="tablist"
+                aria-label="Период оплаты"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={billingInterval === "month"}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                    billingInterval === "month"
+                      ? "bg-white/10 text-white"
+                      : "text-muted hover:text-gray-200"
+                  }`}
+                  onClick={() => setBillingInterval("month")}
+                >
+                  Помесячно
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={billingInterval === "year"}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                    billingInterval === "year"
+                      ? "bg-white/10 text-white"
+                      : "text-muted hover:text-gray-200"
+                  }`}
+                  onClick={() => setBillingInterval("year")}
+                >
+                  Год −30%
+                </button>
+              </div>
+            </div>
+          )}
+          {authUser?.planTier === "basic" && !authUser.subscriptionExpired && (
+            <p className="text-center text-xs text-muted mb-6 max-w-lg mx-auto">
+              Апгрейд до Pro — доплата за оставшийся период; годовой тариф при апгрейде не
+              применяется.
+            </p>
+          )}
+          <PricingTierGrid
+            onPurchase={startCheckout}
+            plans={displayPlans()}
+            pricingUser={authUser}
+            loggedIn={loggedIn}
+          />
+        </>
       )}
 
       <CheckoutModal
@@ -250,6 +358,7 @@ export function PricingWithCheckout() {
         loading={loading}
         error={error}
         useYookassa={useYookassa}
+        chargeOverride={checkoutChargeLabel}
         onClose={() => {
           if (!loading) {
             setCheckoutPlan(null);

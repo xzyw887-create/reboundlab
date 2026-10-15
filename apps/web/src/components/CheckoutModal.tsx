@@ -12,6 +12,8 @@ interface Props {
   loading: boolean;
   error: string | null;
   useYookassa?: boolean;
+  /** Точная сумма с сервера (год / апгрейд / тест) */
+  chargeOverride?: string | null;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -22,6 +24,7 @@ export function CheckoutModal({
   loading,
   error,
   useYookassa = false,
+  chargeOverride = null,
   onClose,
   onConfirm,
 }: Props) {
@@ -42,7 +45,7 @@ export function CheckoutModal({
 
   if (!open || !plan) return null;
 
-  const charge = planCheckoutCharge(plan, t);
+  const charge = chargeOverride ?? planCheckoutCharge(plan, t);
   const testCharge = isBillingTestCharge(plan.tier);
 
   return (

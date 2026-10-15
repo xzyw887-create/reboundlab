@@ -1,3 +1,4 @@
+import type { BillingInterval } from "@/lib/billingInterval";
 import { query } from "@/lib/db";
 import type { PlanTier } from "@/lib/subscriptionTiers";
 
@@ -22,6 +23,10 @@ export async function ensureBillingPaymentsSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_billing_payments_user
     ON core.billing_payments(user_id, created_at DESC)
   `);
+  await query(`
+    ALTER TABLE core.billing_payments
+    ADD COLUMN IF NOT EXISTS billing_interval VARCHAR(8) NOT NULL DEFAULT 'month'
+  `);
   schemaEnsured = true;
 }
 
@@ -30,6 +35,7 @@ export type BillingPaymentRow = {
   user_id: string;
   tier: string;
   amount_rub: number;
+  billing_interval?: string;
   yookassa_payment_id: string | null;
   status: string;
   created_at: Date;
@@ -40,14 +46,15 @@ export type BillingPaymentRow = {
 export async function insertPendingBillingPayment(
   userId: string,
   tier: PlanTier,
-  amountRub: number
+  amountRub: number,
+  billingInterval: BillingInterval = "month"
 ): Promise<string> {
   await ensureBillingPaymentsSchema();
   const rows = await query<{ id: string }>(
-    `INSERT INTO core.billing_payments (user_id, tier, amount_rub, status)
-     VALUES ($1, $2, $3, 'pending')
+    `INSERT INTO core.billing_payments (user_id, tier, amount_rub, billing_interval, status)
+     VALUES ($1, $2, $3, $4, 'pending')
      RETURNING id`,
-    [userId, tier, amountRub]
+    [userId, tier, amountRub, billingInterval]
   );
   const id = rows[0]?.id;
   if (!id) throw new Error("PAYMENT_ROW_FAILED");
@@ -90,7 +97,7 @@ export async function findPaymentByYooId(
 ): Promise<BillingPaymentRow | null> {
   await ensureBillingPaymentsSchema();
   const rows = await query<BillingPaymentRow>(
-    `SELECT id, user_id, tier, amount_rub, yookassa_payment_id, status,
+    `SELECT id, user_id, tier, amount_rub, billing_interval, yookassa_payment_id, status,
             created_at, paid_at, activated_at
      FROM core.billing_payments
      WHERE yookassa_payment_id = $1
@@ -106,7 +113,7 @@ export async function findPaymentForUser(
 ): Promise<BillingPaymentRow | null> {
   await ensureBillingPaymentsSchema();
   const rows = await query<BillingPaymentRow>(
-    `SELECT id, user_id, tier, amount_rub, yookassa_payment_id, status,
+    `SELECT id, user_id, tier, amount_rub, billing_interval, yookassa_payment_id, status,
             created_at, paid_at, activated_at
      FROM core.billing_payments
      WHERE id = $1 AND user_id = $2

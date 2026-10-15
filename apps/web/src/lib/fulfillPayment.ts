@@ -1,5 +1,5 @@
 import { ApiError } from "@/lib/apiErrors";
-import { chargeRubForTier } from "@/lib/billingCharge";
+import { parseBillingInterval } from "@/lib/billingInterval";
 import {
   findPaymentByYooId,
   markPaymentSucceeded,
@@ -35,8 +35,7 @@ export async function fulfillYooKassaPayment(
   if (!tier) throw new ApiError("INVALID_TIER");
 
   const paidRub = Math.round(Number(remote.amount.value));
-  const expected = chargeRubForTier(tier);
-  if (paidRub !== expected || paidRub !== row.amount_rub) {
+  if (paidRub !== row.amount_rub) {
     throw new ApiError("INVALID_REQUEST");
   }
 
@@ -45,7 +44,9 @@ export async function fulfillYooKassaPayment(
     throw new ApiError("INVALID_REQUEST");
   }
 
-  await activateSubscription(row.user_id, tier);
+  const interval = parseBillingInterval(row.billing_interval ?? remote.metadata?.billing_interval);
+
+  await activateSubscription(row.user_id, tier, { interval });
   await markPaymentSucceeded(yooPaymentId, true);
 
   return { activated: true, userId: row.user_id, tier };

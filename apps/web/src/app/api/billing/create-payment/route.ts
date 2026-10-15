@@ -3,6 +3,7 @@ import type { PlanTier } from "@/lib/subscriptionTiers";
 import { apiMessage, resolveErrorMessage } from "@/lib/apiErrors";
 import { localeFromRequest } from "@/lib/apiLocale";
 import { getAuthUser } from "@/lib/auth";
+import { quoteCheckoutAmount } from "@/lib/billingCheckoutAmount";
 import { createYooKassaPayment } from "@/lib/yookassaClient";
 import { yookassaConfigured } from "@/lib/yookassaConfig";
 
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = (await req.json()) as { tier?: PlanTier };
+    const body = (await req.json()) as { tier?: PlanTier; interval?: string };
     const tier = body.tier;
     if (tier !== "basic" && tier !== "pro") {
       return NextResponse.json(
@@ -34,7 +35,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await createYooKassaPayment(user.id, user.email, tier);
+    const quote = quoteCheckoutAmount(user, tier, body.interval);
+    const result = await createYooKassaPayment(user.id, user.email, tier, quote);
 
     return NextResponse.json({
       ok: true,

@@ -3,6 +3,11 @@
 import Link from "next/link";
 import type { SubscriptionPlan } from "@/lib/subscriptionTiers";
 import { localizedPlans } from "@/lib/localizedPlans";
+import {
+  paidTierState,
+  trialTierState,
+  type PricingUserState,
+} from "@/lib/pricingEligibility";
 import { useLocale } from "@/lib/i18n";
 
 function FeatureCheck({ included }: { included: boolean }) {
@@ -54,13 +59,17 @@ function TierCard({
   onPurchase,
   popularLabel,
   soonLabel,
+  buttonState,
 }: {
   plan: SubscriptionPlan;
   onSelect?: (tier: SubscriptionPlan["tier"]) => void;
   onPurchase?: (tier: SubscriptionPlan["tier"]) => void;
   popularLabel: string;
   soonLabel: string;
+  buttonState?: { enabled: boolean; label?: string; hint?: string };
 }) {
+  const disabled = buttonState && !buttonState.enabled;
+  const ctaText = buttonState?.label ?? plan.cta;
   const ctaClass = plan.highlighted
     ? "btn-primary w-full shrink-0"
     : plan.comingSoon
@@ -125,8 +134,18 @@ function TierCard({
           ))}
         </ul>
 
+        {buttonState?.hint && (
+          <p className="text-xs text-muted mt-4 leading-relaxed">{buttonState.hint}</p>
+        )}
+
         {plan.comingSoon ? (
           <span className={`${ctaWrap} ${ctaClass}`}>{plan.cta}</span>
+        ) : disabled ? (
+          <div className={ctaWrap}>
+            <span className={`${ctaClass} block text-center opacity-60 cursor-not-allowed`}>
+              {ctaText}
+            </span>
+          </div>
         ) : onPurchase && (plan.tier === "basic" || plan.tier === "pro") ? (
           <div className={ctaWrap}>
             <button
@@ -134,7 +153,7 @@ function TierCard({
               onClick={() => onPurchase(plan.tier)}
               className={ctaClass}
             >
-              {plan.cta}
+              {ctaText}
             </button>
           </div>
         ) : onSelect ? (
@@ -144,19 +163,19 @@ function TierCard({
               onClick={() => onSelect(plan.tier)}
               className={ctaClass}
             >
-              {plan.cta}
+              {ctaText}
             </button>
           </div>
         ) : plan.tier === "trial" ? (
           <div className={ctaWrap}>
             <Link href="/login?next=/app" className={`${ctaClass} block text-center`}>
-              {plan.cta}
+              {ctaText}
             </Link>
           </div>
         ) : (
           <div className={ctaWrap}>
             <Link href={plan.ctaHref} className={`${ctaClass} block text-center`}>
-              {plan.cta}
+              {ctaText}
             </Link>
           </div>
         )}
@@ -169,13 +188,29 @@ export function PricingTierGrid({
   onPlanSelect,
   onPurchase,
   compact,
+  plans: plansOverride,
+  pricingUser,
+  loggedIn = false,
 }: {
   onPlanSelect?: (tier: SubscriptionPlan["tier"]) => void;
   onPurchase?: (tier: SubscriptionPlan["tier"]) => void;
   compact?: boolean;
+  plans?: SubscriptionPlan[];
+  pricingUser?: PricingUserState | null;
+  loggedIn?: boolean;
 }) {
   const { t, locale } = useLocale();
-  const plans = localizedPlans(t, locale);
+  const plans = plansOverride ?? localizedPlans(t, locale);
+
+  function buttonStateFor(plan: SubscriptionPlan) {
+    if (plan.tier === "trial") {
+      return trialTierState(loggedIn, pricingUser ?? null);
+    }
+    if (plan.tier === "basic" || plan.tier === "pro") {
+      return paidTierState(plan.tier, pricingUser ?? null);
+    }
+    return { enabled: true };
+  }
 
   return (
     <div
@@ -193,6 +228,7 @@ export function PricingTierGrid({
           onPurchase={onPurchase}
           popularLabel={t.pricingUi.popular}
           soonLabel={t.pricingUi.comingSoon}
+          buttonState={buttonStateFor(plan)}
         />
       ))}
     </div>

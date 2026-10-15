@@ -2,9 +2,12 @@ import type { PlanTier } from "@/lib/subscriptionTiers";
 import { planByTier } from "@/lib/subscriptionTiers";
 import { query } from "@/lib/db";
 import { ensureBillingSchema } from "@/lib/ensureBillingSchema";
+import type { BillingInterval } from "@/lib/billingInterval";
 import {
   anchorDayFromDate,
+  periodEndAfterAnnualRenewal,
   periodEndAfterRenewal,
+  periodEndFromAnnualPayment,
   periodEndFromPayment,
 } from "@/lib/billingPeriod";
 import { mapDbTierToUi } from "@/lib/auth";
@@ -49,8 +52,10 @@ function isExpired(expiresAt: Date | null): boolean {
 
 export async function activateSubscription(
   userId: string,
-  tier: PlanTier
+  tier: PlanTier,
+  options?: { interval?: BillingInterval }
 ): Promise<{ tier: PlanTier; expiresAt: string; billingAnchorDay: number | null }> {
+  const interval: BillingInterval = options?.interval === "year" ? "year" : "month";
   if (!PURCHASABLE.includes(tier)) {
     throw new Error("Этот тариф нельзя активировать");
   }
@@ -78,12 +83,22 @@ export async function activateSubscription(
   let billingAnchorDay: number;
   let expiresAt: Date;
 
+  const endFromPayment = (anchor: number) =>
+    interval === "year"
+      ? periodEndFromAnnualPayment(paidAt, anchor)
+      : periodEndFromPayment(paidAt, anchor);
+
+  const endFromRenewal = (cur: Date, anchor: number) =>
+    interval === "year"
+      ? periodEndAfterAnnualRenewal(cur, anchor)
+      : periodEndAfterRenewal(cur, anchor);
+
   if (onTrial) {
     billingAnchorDay = anchorDayFromDate(paidAt);
-    expiresAt = periodEndFromPayment(paidAt, billingAnchorDay);
+    expiresAt = endFromPayment(billingAnchorDay);
   } else if (isExpired(current.expires_at)) {
     billingAnchorDay = current.billing_anchor_day ?? anchorDayFromDate(paidAt);
-    expiresAt = periodEndFromPayment(paidAt, billingAnchorDay);
+    expiresAt = endFromPayment(billingAnchorDay);
   } else if (paidActive && currentUi === "basic" && tier === "pro") {
     if (!current.expires_at) throw new Error("Нет даты окончания подписки");
     billingAnchorDay = current.billing_anchor_day ?? anchorDayFromDate(paidAt);
@@ -91,12 +106,12 @@ export async function activateSubscription(
   } else if (paidActive && currentUi === tier) {
     if (!current.expires_at) throw new Error("Нет даты окончания подписки");
     billingAnchorDay = current.billing_anchor_day ?? anchorDayFromDate(paidAt);
-    expiresAt = periodEndAfterRenewal(current.expires_at, billingAnchorDay);
+    expiresAt = endFromRenewal(current.expires_at, billingAnchorDay);
   } else if (paidActive && currentUi === "pro" && tier === "basic") {
     throw new Error("Понижение до Basic — после окончания текущего периода Pro");
   } else {
     billingAnchorDay = anchorDayFromDate(paidAt);
-    expiresAt = periodEndFromPayment(paidAt, billingAnchorDay);
+    expiresAt = endFromPayment(billingAnchorDay);
   }
 
   await query(

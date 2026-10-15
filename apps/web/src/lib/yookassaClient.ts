@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
+import type { CheckoutQuote } from "@/lib/billingCheckoutAmount";
 import type { PlanTier } from "@/lib/subscriptionTiers";
-import { chargeRubForTier } from "@/lib/billingCharge";
 import {
   attachYooPaymentId,
   insertPendingBillingPayment,
@@ -38,14 +38,20 @@ function tierLabel(tier: PlanTier): string {
 export async function createYooKassaPayment(
   userId: string,
   userEmail: string,
-  tier: PlanTier
+  tier: PlanTier,
+  quote: CheckoutQuote
 ): Promise<{ localPaymentId: string; confirmationUrl: string; yooPaymentId: string }> {
   if (!yookassaConfigured()) throw new Error("YOOKASSA_NOT_CONFIGURED");
 
-  const amountRub = chargeRubForTier(tier);
+  const amountRub = quote.amountRub;
   if (amountRub <= 0) throw new Error("INVALID_TIER");
 
-  const localPaymentId = await insertPendingBillingPayment(userId, tier, amountRub);
+  const localPaymentId = await insertPendingBillingPayment(
+    userId,
+    tier,
+    amountRub,
+    quote.interval
+  );
 
   const body: Record<string, unknown> = {
     amount: { value: amountRub.toFixed(2), currency: "RUB" },
@@ -54,10 +60,12 @@ export async function createYooKassaPayment(
       type: "redirect",
       return_url: yookassaReturnUrl(localPaymentId),
     },
-    description: `BackTest Pro — ${tierLabel(tier)}`,
+    description: `BackTest Pro — ${tierLabel(tier)}${quote.isUpgrade ? " (апгрейд)" : ""}`,
     metadata: {
       user_id: userId,
       tier,
+      billing_interval: quote.interval,
+      upgrade: quote.isUpgrade ? "1" : "0",
     },
   };
 

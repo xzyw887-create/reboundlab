@@ -1,7 +1,8 @@
 # Один VPS (Sprinthost / REG.RU / Timeweb): Postgres + BackTest Pro
-# На сервере:
+# На сервере (из корня репозитория):
 #   cp scripts/production.env.example .env   # заполнить
-#   docker compose -f deploy/docker/docker-compose.prod.yml up -d --build
+#   set -a && source .env && set +a && docker compose -f deploy/docker/docker-compose.prod.yml up -d --build
+# Или: docker compose --env-file .env -f deploy/docker/docker-compose.prod.yml up -d --build
 services:
   postgres:
     image: postgres:16-alpine
@@ -37,6 +38,13 @@ services:
       PROJECT_ROOT: /app
       NODE_ENV: production
       PORT: "8080"
+      # Явно из .env (после source / --env-file), иначе старый контейнер может жить без ЮKassa
+      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID:-}
+      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
+      YOOKASSA_RETURN_URL: ${YOOKASSA_RETURN_URL:-}
+      YOOKASSA_SEND_RECEIPT: ${YOOKASSA_SEND_RECEIPT:-}
+      BILLING_CHARGE_BASIC_RUB: ${BILLING_CHARGE_BASIC_RUB:-}
+      BILLING_CHARGE_PRO_RUB: ${BILLING_CHARGE_PRO_RUB:-}
     ports:
       - "127.0.0.1:8080:8080"
 

@@ -2,13 +2,11 @@
 
 > Черновик согласован с продуктом · 2026-10-09. Реализация — после подключения магазина ЮKassa.
 
-## Сейчас в коде (заглушка)
+## Сейчас в коде
 
-- **Регистрация:** trial **1 день**, **без карты**, `expires_at = now + 1 day`.
-- **«Оплата» на /pricing:** сразу `INSERT` подписки **+30 дней от момента нажатия**, без карты, без прoration.
-- **Смена Basic → Pro:** отдельной логики нет (новая оплата = ещё +30 дней с нуля).
-
-Это **не** финальная модель — только demo до ЮKassa.
+- **ЮKassa (API v3):** при `YOOKASSA_SHOP_ID` + `YOOKASSA_SECRET_KEY` на `/pricing` кнопка ведёт на `create-payment` → redirect на страницу ЮKassa; активация тарифа только после `payment.succeeded` (webhook + опрос после return).
+- **Заглушка:** если ключей нет и `NODE_ENV !== production` (или `ALLOW_CHECKOUT_STUB=1`) — мгновенная «оплата» без карты. В production без ключей checkout недоступен.
+- **Proration / recurring:** см. целевую модель ниже — частично ещё не реализовано.
 
 ---
 
@@ -49,10 +47,11 @@
 
 ## Этапы внедрения
 
-1. ЮKassa: магазин, тестовые платежи, webhook URL на `backtestpro.ru`.
-2. API: `create-payment` + `webhook` вместо прямого `activateSubscription` из checkout.
-3. `activateSubscription` → **продление/смена** с proration (остаток дней, апгрейд).
-4. UI: в аккаунте показывать **дату следующего списания** и тариф; checkout — «привязать карту» опционально после trial.
+1. **ЮKassa ЛК:** shopId в `.env`, выпустить секретный ключ API, webhook `https://backtestpro.ru/api/billing/yookassa/webhook`, событие `payment.succeeded`. При самозанятом/54-ФЗ — `YOOKASSA_SEND_RECEIPT=1` и настройка чеков в ЛК.
+2. **VPS:** `/opt/reboundlab/.env` — `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL=https://backtestpro.ru/pricing`; убедиться, что **нет** `ALLOW_CHECKOUT_STUB=1`. Перезапуск из `/opt/reboundlab`: `set -a && source .env && set +a && docker compose -f deploy/docker/docker-compose.prod.yml up -d --build` (иначе Compose не видит `POSTGRES_PASSWORD` для подстановки в yaml).
+3. **Проверка:** залогиниться → `/pricing` → «Перейти к оплате» → тестовая сумма (опционально `BILLING_CHARGE_*_RUB=100`) → после оплаты редирект на `/pricing?payment=return&id=…` и вход в терминал.
+4. **НСПК / СБП:** своя форма оплаты не используется (redirect на ЮKassa) — брендбук СБП на нашей вёрстке не нужен. Логотип СБП в подвале — **только если** добавите логотипы Visa/Mir и т.п.; сейчас в `SiteFooter` их нет.
+5. Дальше: proration апгрейда, recurring, дата следующего списания в аккаунте.
 
 ---
 

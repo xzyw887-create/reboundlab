@@ -5,7 +5,12 @@ import {
   attachYooPaymentId,
   insertPendingBillingPayment,
 } from "@/lib/billingPayments";
-import { yookassaConfigured, yookassaReturnUrl } from "@/lib/yookassaConfig";
+import {
+  yookassaConfigured,
+  yookassaCredentials,
+  yookassaReturnUrl,
+  yookassaSendReceiptEnabled,
+} from "@/lib/yookassaConfig";
 
 type YooAmount = { value: string; currency: string };
 
@@ -19,9 +24,9 @@ export type YooPayment = {
 };
 
 function authHeader(): string {
-  const shopId = process.env.YOOKASSA_SHOP_ID!.trim();
-  const secret = process.env.YOOKASSA_SECRET_KEY!.trim();
-  return `Basic ${Buffer.from(`${shopId}:${secret}`).toString("base64")}`;
+  const creds = yookassaCredentials();
+  if (!creds) throw new Error("YOOKASSA_NOT_CONFIGURED");
+  return `Basic ${Buffer.from(`${creds.shopId}:${creds.secret}`).toString("base64")}`;
 }
 
 function tierLabel(tier: PlanTier): string {
@@ -56,7 +61,7 @@ export async function createYooKassaPayment(
     },
   };
 
-  if (process.env.YOOKASSA_SEND_RECEIPT === "1" && userEmail.includes("@")) {
+  if (yookassaSendReceiptEnabled() && userEmail.includes("@")) {
     body.receipt = {
       customer: { email: userEmail },
       items: [

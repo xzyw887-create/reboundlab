@@ -1,12 +1,34 @@
+type YookassaEnvKey =
+  | "YOOKASSA_SHOP_ID"
+  | "YOOKASSA_SECRET_KEY"
+  | "YOOKASSA_RETURN_URL"
+  | "YOOKASSA_SEND_RECEIPT";
+
+/** Runtime env (Docker): bracket access so Next build does not bake empty values. */
+function billingEnv(name: YookassaEnvKey): string | undefined {
+  return process.env[name];
+}
+
 export function yookassaConfigured(): boolean {
   return Boolean(
-    process.env.YOOKASSA_SHOP_ID?.trim() && process.env.YOOKASSA_SECRET_KEY?.trim()
+    billingEnv("YOOKASSA_SHOP_ID")?.trim() && billingEnv("YOOKASSA_SECRET_KEY")?.trim()
   );
+}
+
+export function yookassaSendReceiptEnabled(): boolean {
+  return billingEnv("YOOKASSA_SEND_RECEIPT") === "1";
+}
+
+export function yookassaCredentials(): { shopId: string; secret: string } | null {
+  const shopId = billingEnv("YOOKASSA_SHOP_ID")?.trim();
+  const secret = billingEnv("YOOKASSA_SECRET_KEY")?.trim();
+  if (!shopId || !secret) return null;
+  return { shopId, secret };
 }
 
 export function yookassaReturnUrl(localPaymentId?: string): string {
   const base =
-    process.env.YOOKASSA_RETURN_URL?.trim() ||
+    billingEnv("YOOKASSA_RETURN_URL")?.trim() ||
     `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pricing`;
   const u = new URL(base.includes("://") ? base : `https://${base}`);
   u.searchParams.set("payment", "return");

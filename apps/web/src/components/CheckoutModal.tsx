@@ -76,9 +76,10 @@ export function CheckoutModal({
 
           {useYookassa ? (
             <p className="text-sm text-muted leading-relaxed">
-              Вы перейдёте на защищённую страницу <strong className="text-gray-300">ЮKassa</strong>{" "}
-              для оплаты картой. После успешного платежа тариф активируется автоматически; период
-              подписки — календарный месяц от дня оплаты.
+              Вы перейдёте на защищённую страницу оплаты{" "}
+              <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы,
+              доступные в кабинете). После успешного платежа тариф активируется автоматически;
+              период подписки — календарный месяц от дня оплаты.
             </p>
           ) : (
             <p className="text-sm text-muted leading-relaxed">

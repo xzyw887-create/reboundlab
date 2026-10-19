@@ -84,10 +84,7 @@ function TierCard({
   const canPurchase =
     Boolean(onPurchase) &&
     !disabled &&
-    (plan.tier === "basic" ||
-      plan.tier === "pro" ||
-      plan.tier === "trial" ||
-      (devSwitch && plan.tier === "trial"));
+    (plan.tier === "basic" || plan.tier === "pro" || plan.tier === "trial");
   const canSelect = Boolean(onSelect) && !disabled;
 
   function activateCard() {

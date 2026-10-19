@@ -33,7 +33,7 @@ export function quoteCheckoutAmount(
   intervalRaw: unknown,
   devTester = false
 ): CheckoutQuote {
-  assertCanPurchaseTier(user, tier, devTester);
+  assertCanPurchaseTier(user, tier);
   const interval = parseBillingInterval(intervalRaw);
 
   const monthlyCharge = chargeRubForTier(tier);

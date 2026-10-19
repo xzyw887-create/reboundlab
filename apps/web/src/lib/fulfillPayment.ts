@@ -10,7 +10,7 @@ import { activateSubscription } from "@/lib/subscriptionActivate";
 import type { PlanTier } from "@/lib/subscriptionTiers";
 import { describeYooMethod, fetchYooKassaPayment } from "@/lib/yookassaClient";
 
-function parseTier(v: string | undefined): PlanTier | null {
+function parseTier(v: string | undefined): "basic" | "pro" | null {
   if (v === "basic" || v === "pro") return v;
   return null;
 }

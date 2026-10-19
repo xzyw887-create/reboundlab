@@ -113,18 +113,19 @@ export function CheckoutModal({
             </p>
           )}
 
-          {!previewOk &&
-            (useYookassa ? (
-              <p className="text-sm text-muted leading-relaxed">
-                Оплата на защищённой странице{" "}
-                <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы в
-                кабинете). После успешного платежа тариф активируется автоматически.
-              </p>
-            ) : (
+          {useYookassa ? (
+            <p className="text-sm text-muted leading-relaxed">
+              Оплата на защищённой странице{" "}
+              <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы в
+              кабинете). После успешного платежа тариф активируется автоматически.
+            </p>
+          ) : (
+            !previewOk && (
               <p className="text-sm text-muted leading-relaxed">
                 Режим разработки: без списания с карты. После оплаты тариф активируется в аккаунте.
               </p>
-            ))}
+            )
+          )}
 
           <div className="checkout-summary space-y-2">
             <div className="flex justify-between text-sm">
@@ -226,11 +227,9 @@ export function CheckoutModal({
           >
             {loading
               ? "…"
-              : previewOk
-                ? "Ок"
-                : useYookassa
-                  ? `Оформить подписку ${plan.name}`
-                  : `${t.pricingUi.pay} ${charge}`}
+              : useYookassa || previewOk
+                ? `Оформить подписку ${plan.name}`
+                : `${t.pricingUi.pay} ${charge}`}
           </button>
         </div>
       </div>

@@ -431,7 +431,7 @@ export function PricingWithCheckout() {
         plan={checkoutPlan}
         loading={loading}
         error={error}
-        useYookassa={useYookassa && !authUser?.flowPreview}
+        useYookassa={useYookassa}
         previewOk={Boolean(authUser?.flowPreview)}
         chargeOverride={checkoutChargeLabel}
         checkoutQuote={checkoutQuote}

@@ -302,6 +302,13 @@ export const ru: Dictionary = {
     autopayOn: "Включено",
     autopayOff: "Выключено",
     cancelAutopay: "Отменить подписку",
+    cancelConfirmTitle: "Отменить подписку?",
+    cancelConfirmBody:
+      "До {date} осталось {left}. После отмены этот срок сгорит: терминал закроется, и карту нужно будет привязать заново.",
+    cancelConfirmNoDate:
+      "После отмены терминал закроется, и карту нужно будет привязать заново.",
+    cancelConfirmKeep: "Оставить подписку",
+    cancelConfirmYes: "Да, отменить",
     unlinkCard: "Отвязать карту",
     loading: "Загрузка…",
     stubBillingNote:

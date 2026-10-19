@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiMessage, resolveErrorMessage } from "@/lib/apiErrors";
 import { localeFromRequest } from "@/lib/apiLocale";
 import { authUserJson, getAuthUser } from "@/lib/auth";
-import { cancelAutopay, unlinkPaymentMethod } from "@/lib/autopay";
+import { endSubscriptionNow, unlinkPaymentMethod } from "@/lib/autopay";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
     const body = (await req.json()) as { action?: string };
     if (body.action === "cancel") {
-      await cancelAutopay(user.id);
+      await endSubscriptionNow(user.id);
     } else if (body.action === "unlink") {
       await unlinkPaymentMethod(user.id);
     } else {

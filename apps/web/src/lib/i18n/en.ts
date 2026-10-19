@@ -300,6 +300,13 @@ export const en = {
     autopayOn: "On",
     autopayOff: "Off",
     cancelAutopay: "Cancel subscription",
+    cancelConfirmTitle: "Cancel the subscription?",
+    cancelConfirmBody:
+      "{left} left, until {date}. Cancelling burns that time: the terminal closes, and the card has to be linked again.",
+    cancelConfirmNoDate:
+      "After cancellation the terminal closes, and the card has to be linked again.",
+    cancelConfirmKeep: "Keep subscription",
+    cancelConfirmYes: "Yes, cancel",
     unlinkCard: "Remove card",
     loading: "Loading…",
     stubBillingNote:

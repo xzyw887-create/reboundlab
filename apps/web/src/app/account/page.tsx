@@ -8,7 +8,7 @@ import { planDisplayName } from "@/lib/selectedPlan";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { apiFetch } from "@/lib/clientFetch";
-import { useLocale } from "@/lib/i18n";
+import { formatTpl, useLocale } from "@/lib/i18n";
 import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import { DevLocalTesterPanel } from "@/components/DevLocalTesterPanel";
 import { userAccountLoginLabel } from "@/lib/userDisplayName";
@@ -35,14 +35,43 @@ function formatDate(iso: string | null): string {
   return iso.slice(0, 10);
 }
 
+function daysLeft(iso: string | null): number {
+  if (!iso) return 0;
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / 86_400_000);
+}
+
+function leftLabel(days: number, locale: string): string {
+  if (locale === "en") return days === 1 ? "1 day" : `${days} days`;
+  const n10 = days % 10;
+  const n100 = days % 100;
+  const word =
+    n10 === 1 && n100 !== 11
+      ? "день"
+      : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)
+        ? "дня"
+        : "дней";
+  return `${days} ${word}`;
+}
+
+function formatLongDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function AccountPage() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const a = t.accountPage;
   const [user, setUser] = useState<AccountUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingBusy, setBillingBusy] = useState<"cancel" | "unlink" | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     const enroll = new URLSearchParams(window.location.search).get("preview") === "1";
@@ -74,7 +103,7 @@ export default function AccountPage() {
       });
   }, [router]);
 
-  async function billingAction(action: "cancel" | "unlink") {
+  async function billingAction(action: "cancel" | "unlink"): Promise<boolean> {
     setBillingBusy(action);
     setBillingError(null);
     try {
@@ -86,8 +115,10 @@ export default function AccountPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || a.loading);
       if (data.user) setUser(data.user);
+      return true;
     } catch (err) {
       setBillingError(err instanceof Error ? err.message : a.loading);
+      return false;
     } finally {
       setBillingBusy(null);
     }
@@ -191,14 +222,16 @@ export default function AccountPage() {
 
             {billingError && <p className="text-sm text-red-300">{billingError}</p>}
 
-            <button
-              type="button"
-              className="text-sm text-muted hover:text-white text-left disabled:opacity-60"
-              disabled={billingBusy !== null}
-              onClick={() => void billingAction("cancel")}
-            >
-              {a.cancelAutopay}
-            </button>
+            {!user.trialExpired && !user.subscriptionExpired && (
+              <button
+                type="button"
+                className="text-sm text-muted hover:text-white text-left disabled:opacity-60"
+                disabled={billingBusy !== null}
+                onClick={() => setCancelOpen(true)}
+              >
+                {a.cancelAutopay}
+              </button>
+            )}
 
             {user.trialExpired || user.subscriptionExpired ? (
               <div className="rounded-xl border border-amber-600/40 bg-amber-950/30 p-4 text-sm text-amber-100 space-y-3">
@@ -229,6 +262,65 @@ export default function AccountPage() {
         </div>
       </main>
       <SiteFooter />
+      {cancelOpen && user && (
+        <div
+          className="checkout-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-sub-title"
+          onClick={() => billingBusy === null && setCancelOpen(false)}
+        >
+          <div className="checkout-panel" onClick={(e) => e.stopPropagation()}>
+            <header className="checkout-header">
+              <h2 id="cancel-sub-title" className="text-xl font-bold text-white">
+                {a.cancelConfirmTitle}
+              </h2>
+              <button
+                type="button"
+                className="pricing-window-close"
+                aria-label="Закрыть"
+                disabled={billingBusy !== null}
+                onClick={() => setCancelOpen(false)}
+              >
+                ×
+              </button>
+            </header>
+            <div className="checkout-body space-y-5">
+              <p className="text-sm text-muted leading-relaxed">
+                {user.expiresAt && daysLeft(user.expiresAt) > 0
+                  ? formatTpl(a.cancelConfirmBody, {
+                      date: formatLongDate(user.expiresAt, locale),
+                      left: leftLabel(daysLeft(user.expiresAt), locale),
+                    })
+                  : a.cancelConfirmNoDate}
+              </p>
+              {billingError && <p className="text-sm text-red-300">{billingError}</p>}
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  className="btn-primary w-full"
+                  disabled={billingBusy !== null}
+                  onClick={() => setCancelOpen(false)}
+                >
+                  {a.cancelConfirmKeep}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-muted hover:text-white py-2 disabled:opacity-60"
+                  disabled={billingBusy !== null}
+                  onClick={() =>
+                    void billingAction("cancel").then((ok) => {
+                      if (ok) setCancelOpen(false);
+                    })
+                  }
+                >
+                  {billingBusy === "cancel" ? "…" : a.cancelConfirmYes}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

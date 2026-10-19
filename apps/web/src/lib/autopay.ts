@@ -169,6 +169,23 @@ export async function cancelAutopay(userId: string): Promise<void> {
   );
 }
 
+/** Подписка сгорает сразу: срок в прошлом, продление выключено, карта отвязана. */
+export async function endSubscriptionNow(userId: string): Promise<void> {
+  await ensureBillingSchema();
+  const id = await latestSubscriptionId(userId);
+  await query(
+    `UPDATE core.subscriptions
+     SET status = 'cancelled',
+         expires_at = NOW() - INTERVAL '1 minute',
+         autopay_enabled = FALSE,
+         next_charge_at = NULL,
+         autopay_status = 'idle'
+     WHERE id = $1`,
+    [id]
+  );
+  await unlinkPaymentMethod(userId);
+}
+
 export async function unlinkPaymentMethod(userId: string): Promise<void> {
   await ensureBillingSchema();
   await query(

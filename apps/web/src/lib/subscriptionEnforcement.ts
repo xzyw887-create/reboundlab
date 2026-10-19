@@ -1,6 +1,5 @@
 import type { AuthUser } from "@/lib/auth";
 import { ApiError, type ApiErrorCode } from "@/lib/apiErrors";
-import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
 import { isLocalTestMode, LOCAL_TEST_TIER } from "@/lib/localTestMode";
 import type { BacktestParams } from "@/lib/types";
 import {
@@ -34,15 +33,6 @@ export function resolveEffectiveSubscription(
       tier: LOCAL_TEST_TIER,
       registeredAt: auth.registeredAt,
       blockedCode: null,
-      isAuthenticated: true,
-    };
-  }
-
-  if (auth && !auth.paymentMethodBound && !isDevLocalTesterAccount(auth.email)) {
-    return {
-      tier: auth.planTier,
-      registeredAt: auth.registeredAt,
-      blockedCode: "PAYMENT_METHOD_REQUIRED",
       isAuthenticated: true,
     };
   }

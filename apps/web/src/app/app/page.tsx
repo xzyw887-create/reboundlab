@@ -335,10 +335,7 @@ export default function HomePage() {
         const user = data.user as ClientAuthUser | null;
         const saved = loadSavedParams(DEFAULT_PARAMS);
         if (user) {
-          const live =
-            Boolean(user.paymentMethodBound) &&
-            !user.trialExpired &&
-            !user.subscriptionExpired;
+          const live = !user.trialExpired && !user.subscriptionExpired;
           if (!user.devLocalTester && !live) {
             router.replace("/pricing");
             return;

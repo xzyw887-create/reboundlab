@@ -3,6 +3,7 @@
 import { AppLink } from "@/components/AppLink";
 import { useAuthSession } from "@/lib/useAuthSession";
 import { useLocale } from "@/lib/i18n";
+import { hasLiveAccess } from "@/lib/postLoginPath";
 
 export function LandingHeroCta() {
   const { t } = useLocale();
@@ -12,12 +13,7 @@ export function LandingHeroCta() {
     return <div className="h-12" aria-hidden />;
   }
 
-  const live =
-    Boolean(user?.paymentMethodBound) &&
-    !user?.trialExpired &&
-    !user?.subscriptionExpired;
-
-  const href = isGuest ? "/login?next=/app" : live ? "/app" : "/pricing";
+  const href = isGuest ? "/login?next=/app" : hasLiveAccess(user) ? "/app" : "/pricing";
 
   return (
     <AppLink href={href} className="landing-hero-cta">

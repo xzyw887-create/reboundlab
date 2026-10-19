@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { AppLink } from "@/components/AppLink";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuthSession } from "@/lib/useAuthSession";
+import { hasLiveAccess } from "@/lib/postLoginPath";
 import { planDisplayName } from "@/lib/selectedPlan";
 import { useLocale } from "@/lib/i18n";
 
@@ -40,7 +41,7 @@ export function SiteHeader(_props?: Props) {
                 className="pill-tag text-[10px] hover:border-accent/50 transition-colors"
                 title={t.nav.account}
               >
-                {planDisplayName(user.planTier)}
+                {hasLiveAccess(user) ? planDisplayName(user.planTier) : t.nav.account}
               </Link>
               {isTrialExpired && (
                 <Link href="/pricing" className="btn-primary site-cta-sm">

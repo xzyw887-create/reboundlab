@@ -40,5 +40,9 @@ export async function ensureBillingSchema(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS saved_payment_methods_external_id
     ON core.saved_payment_methods (yookassa_method_id)
   `);
+  await query(`
+    ALTER TABLE core.users
+    ADD COLUMN IF NOT EXISTS flow_preview BOOLEAN NOT NULL DEFAULT FALSE
+  `);
   ensured = true;
 }

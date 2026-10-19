@@ -32,6 +32,7 @@ type AuthSnapshot = {
   expiresAt: string | null;
   billingAnchorDay: number | null;
   devLocalTester?: boolean;
+  flowPreview?: boolean;
 };
 
 function persistPendingPaymentId(id: string) {
@@ -215,23 +216,16 @@ export function PricingWithCheckout() {
     })();
   }, [searchParams, authReady, loggedIn, t.pricingUi.paymentError]);
 
-  async function switchLocalPlan(tier: "trial" | "basic" | "pro") {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await apiFetch("/api/dev/subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preset: tier }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Не удалось сменить тариф");
-      window.location.href = "/app";
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.pricingUi.error);
-      setLoading(false);
-    }
-  }
+  const previewCheckoutOpened = useRef<string | null>(null);
+  useEffect(() => {
+    if (!authReady || !authUser?.flowPreview) return;
+    const tier = searchParams.get("checkout");
+    if (tier !== "trial" && tier !== "basic" && tier !== "pro") return;
+    if (previewCheckoutOpened.current === tier) return;
+    previewCheckoutOpened.current = tier;
+    const plan = planByTier(tier);
+    if (plan && !plan.comingSoon) setCheckoutPlan(plan);
+  }, [authReady, authUser?.flowPreview, searchParams]);
 
   async function bindTrialCard() {
     setLoading(true);
@@ -256,17 +250,14 @@ export function PricingWithCheckout() {
   }
 
   function startCheckout(tier: PlanTier) {
-    if (
-      authUser?.devLocalTester &&
-      (tier === "trial" || tier === "basic" || tier === "pro")
-    ) {
-      void switchLocalPlan(tier);
-      return;
-    }
-
     if (tier === "trial") {
       if (!loggedIn) {
         router.push("/login?next=/pricing");
+        return;
+      }
+      if (authUser?.flowPreview) {
+        const plan = planByTier("trial");
+        if (plan) setCheckoutPlan(plan);
         return;
       }
       void bindTrialCard();
@@ -275,7 +266,7 @@ export function PricingWithCheckout() {
 
     const plan = displayPlans().find((p) => p.tier === tier) ?? planByTier(tier);
     if (!plan || plan.comingSoon) return;
-    if (!authUser?.devLocalTester && (tier === "basic" || tier === "pro")) {
+    if (!authUser?.flowPreview && (tier === "basic" || tier === "pro")) {
       const st = paidTierState(tier, authUser);
       if (!st.enabled) return;
     }
@@ -295,6 +286,22 @@ export function PricingWithCheckout() {
     setLoading(true);
     setError(null);
     try {
+      if (authUser?.flowPreview) {
+        const res = await apiFetch("/api/billing/preview-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "confirm",
+            tier: checkoutPlan.tier,
+            interval: billingInterval,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
+        window.location.href = "/app";
+        return;
+      }
+
       if (billingMode.yookassa) {
         const interval =
           authUser &&
@@ -349,25 +356,29 @@ export function PricingWithCheckout() {
 
   const useYookassa = Boolean(billingMode?.yookassa);
 
-  const checkoutQuote =
-    checkoutPlan && authUser && (checkoutPlan.tier === "basic" || checkoutPlan.tier === "pro")
-      ? quoteCheckoutAmount(
-          authUser,
-          checkoutPlan.tier,
-          authUser.planTier === "basic" &&
-            !authUser.subscriptionExpired &&
-            checkoutPlan.tier === "pro"
-            ? "month"
-            : billingInterval,
-          Boolean(authUser.devLocalTester)
-        )
-      : null;
+  let checkoutQuote: ReturnType<typeof quoteCheckoutAmount> | null = null;
+  if (checkoutPlan && authUser && (checkoutPlan.tier === "basic" || checkoutPlan.tier === "pro")) {
+    try {
+      checkoutQuote = quoteCheckoutAmount(
+        authUser,
+        checkoutPlan.tier,
+        authUser.planTier === "basic" &&
+          !authUser.subscriptionExpired &&
+          checkoutPlan.tier === "pro"
+          ? "month"
+          : billingInterval,
+        Boolean(authUser.flowPreview)
+      );
+    } catch {
+      checkoutQuote = null;
+    }
+  }
 
   const checkoutChargeLabel = checkoutQuote ? formatRubAmount(checkoutQuote.amountRub) : null;
 
   const hideBillingToggle =
     authUser &&
-    !authUser.devLocalTester &&
+    !authUser.flowPreview &&
     ((authUser.planTier === "basic" && !authUser.subscriptionExpired) ||
       (authUser.planTier === "pro" && !authUser.subscriptionExpired));
   const showBillingToggle = !hideBillingToggle;
@@ -410,7 +421,7 @@ export function PricingWithCheckout() {
             plans={displayPlans()}
             pricingUser={authUser}
             loggedIn={loggedIn}
-            devTester={Boolean(authUser?.devLocalTester)}
+            devTester={Boolean(authUser?.flowPreview)}
           />
         </>
       )}
@@ -420,7 +431,8 @@ export function PricingWithCheckout() {
         plan={checkoutPlan}
         loading={loading}
         error={error}
-        useYookassa={useYookassa}
+        useYookassa={useYookassa && !authUser?.flowPreview}
+        previewOk={Boolean(authUser?.flowPreview)}
         chargeOverride={checkoutChargeLabel}
         checkoutQuote={checkoutQuote}
         subscriptionExpiresAt={authUser?.expiresAt ?? null}

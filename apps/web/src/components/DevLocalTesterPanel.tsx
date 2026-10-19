@@ -1,89 +1,65 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { apiFetch } from "@/lib/clientFetch";
-import type { DevSubscriptionPreset } from "@/lib/devSubscriptionPreset";
-import type { PlanTier } from "@/lib/subscriptionTiers";
-import { planDisplayName } from "@/lib/selectedPlan";
 
-const PRESET_BUTTONS: { id: DevSubscriptionPreset; label: string }[] = [
-  { id: "trial", label: "Trial активен" },
-  { id: "trial_expired", label: "Trial истёк" },
-  { id: "basic", label: "Basic активен" },
-  { id: "basic_expired", label: "Basic истёк" },
-  { id: "pro", label: "Pro активен" },
-  { id: "pro_expired", label: "Pro истёк" },
-];
+const PLANS = [
+  { id: "trial", label: "Пробный" },
+  { id: "basic", label: "Basic" },
+  { id: "pro", label: "Pro" },
+] as const;
 
-type AuthSnapshot = {
-  planTier: PlanTier;
-  trialExpired: boolean;
-  subscriptionExpired: boolean;
-  expiresAt: string | null;
-};
-
-interface Props {
-  user: AuthSnapshot;
-  onUpdated: (user: AuthSnapshot) => void;
-}
-
-export function DevLocalTesterPanel({ user, onUpdated }: Props) {
-  const [busy, setBusy] = useState<DevSubscriptionPreset | null>(null);
+/** Проход по оплате для своего аккаунта: выключить тариф или открыть «Ок» без ввода карты. */
+export function DevLocalTesterPanel() {
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function apply(preset: DevSubscriptionPreset) {
-    setBusy(preset);
+  async function turnOff() {
+    setBusy(true);
     setError(null);
     try {
-      const res = await apiFetch("/api/dev/subscription", {
+      const res = await apiFetch("/api/billing/preview-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preset }),
+        body: JSON.stringify({ action: "clear" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка");
-      onUpdated(data.user);
+      window.location.href = "/pricing";
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
-    } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  const status =
-    user.subscriptionExpired || user.trialExpired
-      ? "истёк"
-      : user.planTier === "trial"
-        ? "trial"
-        : "активен";
+  function openPayment(tier: (typeof PLANS)[number]["id"]) {
+    window.location.href = `/pricing?checkout=${tier}`;
+  }
 
   return (
-    <div className="rounded-xl border border-amber-500/35 bg-amber-950/20 px-4 py-4 text-sm space-y-3">
-      <div>
-        <p className="label-caps text-amber-200/90">Dev-local: симулятор подписки</p>
-        <p className="text-muted text-xs mt-1 leading-relaxed">
-          Только аккаунт без Telegram. Меняет тариф в БД, обходя продуктовые ограничения. На{" "}
-          <Link href="/pricing" className="text-accent hover:underline">
-            /pricing
-          </Link>{" "}
-          кнопки оплаты тоже открыты для проверки текстов и checkout.
-        </p>
-      </div>
-      <p className="text-xs text-muted">
-        Сейчас: <strong className="text-white">{planDisplayName(user.planTier)}</strong> ({status}
-        {user.expiresAt ? ` · до ${user.expiresAt.slice(0, 10)}` : ""})
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm space-y-3">
+      <p className="text-muted text-xs leading-relaxed">
+        Выключение снимает тариф и карту и открывает оплату. Выбор тарифа тоже открывает оплату:
+        там кнопка «Ок», без ввода карты. После «Ок» подписка включена и карта привязана.
       </p>
       <div className="flex flex-wrap gap-2">
-        {PRESET_BUTTONS.map(({ id, label }) => (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void turnOff()}
+          className="text-sm text-muted hover:text-white disabled:opacity-50"
+        >
+          Выключить подписку
+        </button>
+        {PLANS.map((plan) => (
           <button
-            key={id}
+            key={plan.id}
             type="button"
-            disabled={busy != null}
-            onClick={() => void apply(id)}
-            className="px-3 py-1.5 rounded-lg border border-amber-600/30 bg-black/25 text-amber-50 text-xs hover:bg-amber-900/35 disabled:opacity-50"
+            disabled={busy}
+            onClick={() => openPayment(plan.id)}
+            className="text-sm text-muted hover:text-white disabled:opacity-50"
           >
-            {busy === id ? "…" : label}
+            {plan.label}
           </button>
         ))}
       </div>

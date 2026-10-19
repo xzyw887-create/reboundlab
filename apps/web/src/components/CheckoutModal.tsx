@@ -29,6 +29,8 @@ interface Props {
   subscriptionExpiresAt?: string | null;
   onClose: () => void;
   onConfirm: () => void;
+  /** Кнопка «Ок» без перехода в кабинет банка. */
+  previewOk?: boolean;
 }
 
 export function CheckoutModal({
@@ -42,6 +44,7 @@ export function CheckoutModal({
   subscriptionExpiresAt = null,
   onClose,
   onConfirm,
+  previewOk = false,
 }: Props) {
   const { t } = useLocale();
   const [consent, setConsent] = useState(false);
@@ -110,17 +113,18 @@ export function CheckoutModal({
             </p>
           )}
 
-          {useYookassa ? (
-            <p className="text-sm text-muted leading-relaxed">
-              Оплата на защищённой странице{" "}
-              <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы в
-              кабинете). После успешного платежа тариф активируется автоматически.
-            </p>
-          ) : (
-            <p className="text-sm text-muted leading-relaxed">
-              Режим разработки: без списания с карты. После оплаты тариф активируется в аккаунте.
-            </p>
-          )}
+          {!previewOk &&
+            (useYookassa ? (
+              <p className="text-sm text-muted leading-relaxed">
+                Оплата на защищённой странице{" "}
+                <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы в
+                кабинете). После успешного платежа тариф активируется автоматически.
+              </p>
+            ) : (
+              <p className="text-sm text-muted leading-relaxed">
+                Режим разработки: без списания с карты. После оплаты тариф активируется в аккаунте.
+              </p>
+            ))}
 
           <div className="checkout-summary space-y-2">
             <div className="flex justify-between text-sm">
@@ -222,9 +226,11 @@ export function CheckoutModal({
           >
             {loading
               ? "…"
-              : useYookassa
-                ? `Оформить подписку ${plan.name}`
-                : `${t.pricingUi.pay} ${charge}`}
+              : previewOk
+                ? "Ок"
+                : useYookassa
+                  ? `Оформить подписку ${plan.name}`
+                  : `${t.pricingUi.pay} ${charge}`}
           </button>
         </div>
       </div>

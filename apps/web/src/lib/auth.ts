@@ -10,6 +10,7 @@ import { isDisposableEmail } from "@/lib/disposableEmailDomains";
 import { ensureBillingSchema } from "@/lib/ensureBillingSchema";
 import { chargeDueForUser } from "@/lib/chargeDue";
 import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
+import { isFlowPreviewAccount } from "@/lib/flowPreview";
 import {
   telegramDisplayNameFromPayload,
   telegramPlaceholderEmail,
@@ -47,6 +48,7 @@ export interface AuthUser {
   paymentMethodBound: boolean;
   paymentMethodTitle: string | null;
   autopayEnabled: boolean;
+  flowPreview: boolean;
   telegramId: number | null;
   telegramUsername: string | null;
   telegramDisplayName: string | null;
@@ -134,10 +136,11 @@ export async function getAuthUser(opts?: { renew?: boolean }): Promise<AuthUser 
     telegram_id: string | null;
     telegram_username: string | null;
     telegram_display_name: string | null;
+    flow_preview: boolean;
   }>(
     `SELECT u.id, u.email, p.tier, s.status, s.expires_at, s.billing_anchor_day,
             s.trial_started, s.autopay_enabled, s.next_charge_at, u.created_at,
-            u.telegram_id, u.telegram_username, u.telegram_display_name
+            u.telegram_id, u.telegram_username, u.telegram_display_name, u.flow_preview
      FROM core.users u
      JOIN core.subscriptions s ON s.user_id = u.id
      JOIN core.plans p ON p.id = s.plan_id
@@ -192,9 +195,15 @@ export async function getAuthUser(opts?: { renew?: boolean }): Promise<AuthUser 
     subscriptionExpired,
     billingAnchorDay: row.billing_anchor_day,
     trialStarted: row.trial_started,
-    paymentMethodBound: Boolean(method),
+    paymentMethodBound: Boolean(method) || (!trialExpired && !subscriptionExpired),
     paymentMethodTitle: method?.title ?? null,
     autopayEnabled: row.autopay_enabled,
+    flowPreview: isFlowPreviewAccount({
+      email: row.email,
+      telegramId: row.telegram_id != null ? Number(row.telegram_id) : null,
+      telegramUsername: row.telegram_username,
+      flowPreviewFlag: row.flow_preview,
+    }),
     telegramId: row.telegram_id != null ? Number(row.telegram_id) : null,
     telegramUsername: row.telegram_username,
     telegramDisplayName: row.telegram_display_name,
@@ -357,6 +366,7 @@ export function authUserJson(user: AuthUser) {
     paymentMethodBound: user.paymentMethodBound,
     paymentMethodTitle: user.paymentMethodTitle,
     autopayEnabled: user.autopayEnabled,
+    flowPreview: user.flowPreview,
     telegramId: user.telegramId,
     telegramUsername: user.telegramUsername,
     telegramDisplayName: user.telegramDisplayName,

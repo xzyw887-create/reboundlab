@@ -24,6 +24,7 @@ interface AccountUser {
   expiresAt: string | null;
   registeredAt: string;
   devLocalTester?: boolean;
+  flowPreview?: boolean;
   paymentMethodBound?: boolean;
   paymentMethodTitle?: string | null;
   autopayEnabled?: boolean;
@@ -44,17 +45,33 @@ export default function AccountPage() {
   const [billingError, setBillingError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : { user: null }))
-      .then((data) => {
-        if (!data.user) {
-          router.replace("/login?next=/account");
-          return;
-        }
-        setUser(data.user);
-        setLoading(false);
-      })
-      .catch(() => router.replace("/login?next=/account"));
+    const enroll = new URLSearchParams(window.location.search).get("preview") === "1";
+    const load = () =>
+      apiFetch("/api/auth/me")
+        .then((r) => (r.ok ? r.json() : { user: null }))
+        .then((data) => {
+          if (!data.user) {
+            router.replace("/login?next=/account");
+            return;
+          }
+          setUser(data.user);
+          setLoading(false);
+        })
+        .catch(() => router.replace("/login?next=/account"));
+
+    if (!enroll) {
+      load();
+      return;
+    }
+    apiFetch("/api/billing/preview-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "enroll" }),
+    })
+      .finally(() => {
+        window.history.replaceState(null, "", "/account");
+        load();
+      });
   }, [router]);
 
   async function billingAction(action: "cancel" | "unlink") {
@@ -129,24 +146,7 @@ export default function AccountPage() {
               <h1 className="text-xl font-semibold text-white mt-1">{a.title}</h1>
             </div>
 
-            {user.devLocalTester && (
-              <DevLocalTesterPanel
-                user={user}
-                onUpdated={(u) =>
-                  setUser((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          planTier: u.planTier,
-                          trialExpired: u.trialExpired,
-                          subscriptionExpired: u.subscriptionExpired,
-                          expiresAt: u.expiresAt,
-                        }
-                      : prev
-                  )
-                }
-              />
-            )}
+            {user.flowPreview && <DevLocalTesterPanel />}
 
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-border/40 pb-3">

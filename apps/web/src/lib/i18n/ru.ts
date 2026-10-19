@@ -266,6 +266,7 @@ export const ru: Dictionary = {
     telegramNotConfigured:
       "Кнопка Telegram появится после настройки бота (TELEGRAM_BOT_TOKEN в .env).",
     telegramSigningIn: "Входим через Telegram…",
+    telegramTimeout: "Вход не ответил. Обновите страницу и нажмите кнопку ещё раз.",
     devLocalLogin: "Войти локально (без Telegram)",
     devLocalHint: "Только dev на localhost. На backtestpro.ru не работает.",
     tryLogin: "Попробуйте войти.",

@@ -34,6 +34,10 @@ export type YooPayment = {
   payment_method?: YooMethod;
 };
 
+function yooFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(12_000) });
+}
+
 function authHeader(): string {
   const creds = yookassaCredentials();
   if (!creds) throw new Error("YOOKASSA_NOT_CONFIGURED");
@@ -97,7 +101,7 @@ export async function createYooKassaPayment(
     };
   }
 
-  const res = await fetch("https://api.yookassa.ru/v3/payments", {
+  const res = await yooFetch("https://api.yookassa.ru/v3/payments", {
     method: "POST",
     headers: {
       Authorization: authHeader(),
@@ -131,7 +135,7 @@ export async function createYooKassaPayment(
 export async function fetchYooKassaPayment(yooPaymentId: string): Promise<YooPayment> {
   if (!yookassaConfigured()) throw new Error("YOOKASSA_NOT_CONFIGURED");
 
-  const res = await fetch(`https://api.yookassa.ru/v3/payments/${yooPaymentId}`, {
+  const res = await yooFetch(`https://api.yookassa.ru/v3/payments/${yooPaymentId}`, {
     headers: { Authorization: authHeader() },
     cache: "no-store",
   });
@@ -163,7 +167,7 @@ export async function createYooKassaPaymentMethod(input: {
 }): Promise<{ methodId: string; confirmationUrl: string }> {
   if (!yookassaConfigured()) throw new Error("YOOKASSA_NOT_CONFIGURED");
 
-  const res = await fetch("https://api.yookassa.ru/v3/payment_methods", {
+  const res = await yooFetch("https://api.yookassa.ru/v3/payment_methods", {
     method: "POST",
     headers: {
       Authorization: authHeader(),
@@ -188,7 +192,7 @@ export async function createYooKassaPaymentMethod(input: {
 
 export async function fetchYooKassaPaymentMethod(methodId: string): Promise<YooMethod> {
   if (!yookassaConfigured()) throw new Error("YOOKASSA_NOT_CONFIGURED");
-  const res = await fetch(`https://api.yookassa.ru/v3/payment_methods/${methodId}`, {
+  const res = await yooFetch(`https://api.yookassa.ru/v3/payment_methods/${methodId}`, {
     headers: { Authorization: authHeader() },
     cache: "no-store",
   });
@@ -245,7 +249,7 @@ export async function createRecurringYooKassaPayment(input: {
     };
   }
 
-  const res = await fetch("https://api.yookassa.ru/v3/payments", {
+  const res = await yooFetch("https://api.yookassa.ru/v3/payments", {
     method: "POST",
     headers: {
       Authorization: authHeader(),

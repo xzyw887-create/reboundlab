@@ -160,12 +160,9 @@ export async function getAuthUser(opts?: { renew?: boolean }): Promise<AuthUser 
     row.next_charge_at.getTime() <= Date.now() &&
     !isDevLocalTesterAccount(row.email)
   ) {
-    try {
-      await chargeDueForUser(row.id);
-    } catch (err) {
+    void chargeDueForUser(row.id).catch((err) => {
       console.error("[autopay]", err);
-    }
-    return getAuthUser({ renew: false });
+    });
   }
 
   const methods = await query<{ title: string | null }>(

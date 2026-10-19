@@ -63,6 +63,7 @@ export function TelegramLoginButton({ next, onError }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(user),
+          signal: AbortSignal.timeout(15_000),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -70,7 +71,8 @@ export function TelegramLoginButton({ next, onError }: Props) {
         }
         window.location.href = pathAfterLogin(data.user, next);
       } catch (e) {
-        onError(e instanceof Error ? e.message : t.auth.errorGeneric);
+        const timedOut = e instanceof DOMException && e.name === "TimeoutError";
+        onError(timedOut ? t.auth.telegramTimeout : e instanceof Error ? e.message : t.auth.errorGeneric);
         setLoading(false);
       }
     };

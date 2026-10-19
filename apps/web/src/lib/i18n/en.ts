@@ -264,6 +264,7 @@ export const en = {
     telegramNotConfigured:
       "Telegram button will appear after TELEGRAM_BOT_TOKEN is set in .env.",
     telegramSigningIn: "Signing in with Telegram…",
+    telegramTimeout: "Sign-in did not respond. Refresh the page and press the button again.",
     devLocalLogin: "Continue locally (no Telegram)",
     devLocalHint: "Dev on localhost only. Disabled on backtestpro.ru.",
     tryLogin: "Try logging in.",

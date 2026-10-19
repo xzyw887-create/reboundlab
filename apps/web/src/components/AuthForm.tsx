@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AuthPageShell } from "@/components/AuthPageShell";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { useLocale } from "@/lib/i18n";
 import { apiFetch } from "@/lib/clientFetch";
@@ -30,6 +30,21 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
   const devLocalUi = showDevLocalAuthUi();
   const emailUi = showEmailPasswordAuthUi();
   const isRegister = mode === "register";
+
+  useEffect(() => {
+    if (isRegister) return;
+    let cancelled = false;
+    apiFetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : { user: null }))
+      .then((data) => {
+        if (cancelled || !data.user) return;
+        window.location.href = pathAfterLogin(data.user, next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isRegister, next]);
 
   async function devLocalLogin() {
     setDevLoading(true);

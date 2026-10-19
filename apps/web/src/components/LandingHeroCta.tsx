@@ -7,13 +7,10 @@ import { hasLiveAccess } from "@/lib/postLoginPath";
 
 export function LandingHeroCta() {
   const { t } = useLocale();
-  const { loading, isGuest, user } = useAuthSession();
+  const { loading, user } = useAuthSession();
 
-  if (loading) {
-    return <div className="h-12" aria-hidden />;
-  }
-
-  const href = isGuest ? "/login?next=/app" : hasLiveAccess(user) ? "/app" : "/pricing";
+  const href =
+    !loading && user ? (hasLiveAccess(user) ? "/app" : "/pricing") : "/login?next=/app";
 
   return (
     <AppLink href={href} className="landing-hero-cta">

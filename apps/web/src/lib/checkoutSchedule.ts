@@ -36,12 +36,12 @@ export function recurringChargeConsentPhrase(
   proMonthlyRub: number
 ): string {
   if (isUpgrade) {
-    return `после окончания текущего оплаченного периода при включённом автопродлении списывать ${formatRubAmount(proMonthlyRub)} в месяц`;
+    return `${formatRubAmount(proMonthlyRub)} в месяц после текущего периода`;
   }
   if (interval === "year") {
-    return `при включённом автопродлении списывать ${formatRubAmount(annualChargeRub)} не чаще одного раза в 12 месяцев`;
+    return `${formatRubAmount(annualChargeRub)} раз в 12 месяцев`;
   }
-  return `при включённом автопродлении списывать ${formatRubAmount(monthlyCatalogRub)} каждый календарный месяц`;
+  return `${formatRubAmount(monthlyCatalogRub)} каждый месяц`;
 }
 
 export function resolveNextChargeDate(

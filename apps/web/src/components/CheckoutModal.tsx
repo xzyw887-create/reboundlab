@@ -179,15 +179,6 @@ export function CheckoutModal({
             </div>
           )}
 
-          <ul className="text-xs text-muted space-y-1">
-            <li className="flex gap-2">
-              <span className="text-emerald-400 shrink-0" aria-hidden>
-                ✓
-              </span>
-              <span>Отменить автопродление можно через поддержку или в настройках аккаунта, когда функция доступна.</span>
-            </li>
-          </ul>
-
           <label className="checkout-consent">
             <input
               type="checkbox"
@@ -196,20 +187,15 @@ export function CheckoutModal({
               className="checkout-consent-input"
             />
             <span className="checkout-consent-text text-xs leading-relaxed text-muted">
-              Подтверждая покупку, вы принимаете{" "}
-              <Link href="/terms" className="text-accent hover:underline" onClick={(e) => e.stopPropagation()}>
-                оферту
-              </Link>{" "}
-              и соглашаетесь на списание: сегодня — {charge}; при автопродлении — {recurringPhrase}. Реквизиты
-              исполнителя — в{" "}
+              Принимаю{" "}
               <Link
                 href={`/terms#${SELLER_DETAILS_ANCHOR}`}
                 className="text-accent hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
-                оферте
+                оферту
               </Link>
-              .
+              . Сегодня — {charge}, далее — {recurringPhrase}.
             </span>
           </label>
 

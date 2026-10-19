@@ -3,20 +3,14 @@ import type { PlanTier } from "@/lib/subscriptionTiers";
 import { apiMessage, resolveErrorMessage } from "@/lib/apiErrors";
 import { localeFromRequest } from "@/lib/apiLocale";
 import { getAuthUser } from "@/lib/auth";
-import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
 import { quoteCheckoutAmount } from "@/lib/billingCheckoutAmount";
+import { parseBillingInterval } from "@/lib/billingInterval";
+import { confirmPreviewCheckout } from "@/lib/flowPreviewCheckout";
 import { createYooKassaPayment } from "@/lib/yookassaClient";
 import { yookassaConfigured } from "@/lib/yookassaConfig";
 
 export async function POST(req: NextRequest) {
   const locale = localeFromRequest(req);
-
-  if (!yookassaConfigured()) {
-    return NextResponse.json(
-      { error: apiMessage(locale, "PAYMENT_PROVIDER_REQUIRED") },
-      { status: 503 }
-    );
-  }
 
   try {
     const user = await getAuthUser();
@@ -33,6 +27,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: apiMessage(locale, "INVALID_TIER") },
         { status: 400 }
+      );
+    }
+
+    if (user.flowPreview) {
+      await confirmPreviewCheckout(user.id, tier, parseBillingInterval(body.interval));
+      return NextResponse.json({ ok: true, preview: true });
+    }
+
+    if (!yookassaConfigured()) {
+      return NextResponse.json(
+        { error: apiMessage(locale, "PAYMENT_PROVIDER_REQUIRED") },
+        { status: 503 }
       );
     }
 

@@ -295,6 +295,7 @@ export function PricingWithCheckout() {
             tier: checkoutPlan.tier,
             interval: billingInterval,
           }),
+          signal: AbortSignal.timeout(20_000),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
@@ -315,9 +316,14 @@ export function PricingWithCheckout() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tier: checkoutPlan.tier, interval }),
+          signal: AbortSignal.timeout(20_000),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
+        if (data.preview) {
+          window.location.href = "/app";
+          return;
+        }
 
         persistPendingPaymentId(data.paymentId);
         window.location.href = data.confirmationUrl;
@@ -349,7 +355,15 @@ export function PricingWithCheckout() {
 
       throw new Error(t.pricingUi.paymentError);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.pricingUi.error);
+      const timedOut =
+        err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+      setError(
+        timedOut
+          ? "Оплата не ответила. Нажмите «Оформить» ещё раз."
+          : err instanceof Error
+            ? err.message
+            : t.pricingUi.error
+      );
       setLoading(false);
     }
   }

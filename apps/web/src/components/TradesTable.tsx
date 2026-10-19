@@ -61,7 +61,8 @@ function hasAveragingDetail(trade: Trade, showAveraging: boolean): boolean {
   return trade.avg_count > 0 || trade.entries.length > 1;
 }
 
-const TH = "py-2.5 px-3 font-medium whitespace-nowrap";
+const TH =
+  "py-2.5 px-3 font-medium whitespace-nowrap sticky top-0 z-10 bg-[#0b1220] shadow-[inset_0_-1px_0_rgba(255,255,255,0.08)]";
 const TD = "py-2.5 px-3 align-top";
 
 function tableColumnCount(showAveraging: boolean): number {
@@ -204,8 +205,8 @@ export function TradesTable({
     );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse table-fixed min-w-[720px]">
+    <div className="trades-table-scroll overflow-x-auto">
+      <table className="w-full text-sm border-separate border-spacing-0 table-fixed min-w-[720px]">
         <thead>
           <tr className="label-caps border-b border-border/60">
             <th className={`${TH} text-right w-10`}>#</th>

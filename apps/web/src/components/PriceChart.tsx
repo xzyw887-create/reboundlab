@@ -107,7 +107,14 @@ export function PriceChart({ candles, markers = [], height = 360 }: Props) {
         horzLines: { color: "#1e2d42" },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      timeScale: { borderColor: "#1e2d42", timeVisible: true },
+      timeScale: {
+        borderColor: "#1e2d42",
+        timeVisible: true,
+        rightOffset: 2,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+        lockVisibleTimeRangeOnResize: true,
+      },
       rightPriceScale: { borderColor: "#1e2d42" },
     });
 
@@ -124,13 +131,18 @@ export function PriceChart({ candles, markers = [], height = 360 }: Props) {
     const validMarkers = prepareMarkers(markers, candleTimes);
 
     series.setData(data);
+    const fit = () => {
+      if (!containerRef.current) return;
+      chart.applyOptions({ width: containerRef.current.clientWidth });
+      chart.timeScale().fitContent();
+    };
+    fit();
+    requestAnimationFrame(fit);
 
     const markersPlugin =
       validMarkers.length > 0
         ? createSeriesMarkers(series, validMarkers.map(toPriceMarker))
         : null;
-
-    chart.timeScale().fitContent();
 
     const handleCrosshair = (param: MouseEventParams) => {
       if (!param.time || !param.point) {
@@ -155,11 +167,7 @@ export function PriceChart({ candles, markers = [], height = 360 }: Props) {
 
     chart.subscribeCrosshairMove(handleCrosshair);
 
-    const handleResize = () => {
-      if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth });
-      }
-    };
+    const handleResize = () => fit();
     handleResize();
     window.addEventListener("resize", handleResize);
 

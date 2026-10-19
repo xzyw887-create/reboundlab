@@ -3,11 +3,9 @@
 export const SUPPORT_EMAIL =
   process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@backtestpro.ru";
 
-export const TELEGRAM_URL =
-  process.env.NEXT_PUBLIC_TELEGRAM_URL ?? "https://t.me/BackTestPro_Help";
+export const TELEGRAM_URL = "https://t.me/Btpkod_bot";
 
-export const TELEGRAM_HANDLE =
-  process.env.NEXT_PUBLIC_TELEGRAM_HANDLE ?? "@BackTestPro_Help";
+export const TELEGRAM_HANDLE = "@Btpkod_bot";
 
 /** group | channel | personal — affects hint text on /help */
 export type TelegramContactKind = "group" | "channel" | "personal";

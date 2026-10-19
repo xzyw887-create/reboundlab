@@ -1422,6 +1422,13 @@ body {
     @apply fixed inset-0 z-[110] flex items-center justify-center p-4;
     background: rgba(5, 8, 14, 0.9);
     backdrop-filter: blur(10px);
+    overscroll-behavior: none;
+  }
+
+  .trades-table-scroll {
+    max-height: 70vh;
+    overflow: auto;
+    overscroll-behavior: contain;
   }
 
   .checkout-panel {

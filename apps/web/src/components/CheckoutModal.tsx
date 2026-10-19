@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CheckoutQuote } from "@/lib/billingCheckoutAmount";
-import { chargeRubForTier, isBillingTestCharge } from "@/lib/billingCharge";
+import { chargeRubForTier, formatRubAmount, isBillingTestCharge } from "@/lib/billingCharge";
 import { annualChargeRubFromCatalogMonthly } from "@/lib/billingInterval";
 import {
   formatCheckoutDateRu,
@@ -52,14 +52,39 @@ export function CheckoutModal({
   useEffect(() => {
     if (!open) return;
     setConsent(false);
+    const scrollY = window.scrollY;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyWidth = body.style.width;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
+    const stopBackgroundWheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".checkout-panel")) return;
+      event.preventDefault();
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    document.body.style.overflow = "hidden";
+    window.addEventListener("wheel", stopBackgroundWheel, { passive: false });
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = "";
+      window.removeEventListener("wheel", stopBackgroundWheel);
       window.removeEventListener("keydown", onKey);
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.width = prevBodyWidth;
+      window.scrollTo(0, scrollY);
     };
   }, [open, onClose]);
 
@@ -73,14 +98,21 @@ export function CheckoutModal({
   const annualCharge =
     catalogMonthly > 0 ? annualChargeRubFromCatalogMonthly(catalogMonthly) : 0;
   const proMonthly = chargeRubForTier("pro");
-  const nextCharge = resolveNextChargeDate(interval, isUpgrade, subscriptionExpiresAt ?? null);
-  const recurringPhrase = recurringChargeConsentPhrase(
-    interval,
-    chargeRubForTier(plan.tier),
-    annualCharge,
-    isUpgrade,
-    proMonthly
-  );
+  const nextCharge =
+    plan.tier === "trial"
+      ? new Date(Date.now() + 86_400_000)
+      : resolveNextChargeDate(interval, isUpgrade, subscriptionExpiresAt ?? null);
+  const basicMonthly = formatRubAmount(chargeRubForTier("basic"));
+  const recurringPhrase =
+    plan.tier === "trial"
+      ? `${basicMonthly} через сутки, затем ${basicMonthly} каждый месяц`
+      : recurringChargeConsentPhrase(
+          interval,
+          chargeRubForTier(plan.tier),
+          annualCharge,
+          isUpgrade,
+          proMonthly
+        );
 
   const payDisabled = loading || !consent;
 
@@ -195,7 +227,10 @@ export function CheckoutModal({
               >
                 оферту
               </Link>
-              . Сегодня — {charge}, далее — {recurringPhrase}.
+              .{" "}
+              {plan.tier === "trial"
+                ? `Сегодня — ${charge}, через сутки — ${basicMonthly}, затем ${basicMonthly} каждый месяц.`
+                : `Сегодня — ${charge}, далее — ${recurringPhrase}.`}
             </span>
           </label>
 

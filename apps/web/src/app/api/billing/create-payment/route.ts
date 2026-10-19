@@ -3,6 +3,7 @@ import type { PlanTier } from "@/lib/subscriptionTiers";
 import { apiMessage, resolveErrorMessage } from "@/lib/apiErrors";
 import { localeFromRequest } from "@/lib/apiLocale";
 import { getAuthUser } from "@/lib/auth";
+import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
 import { quoteCheckoutAmount } from "@/lib/billingCheckoutAmount";
 import { createYooKassaPayment } from "@/lib/yookassaClient";
 import { yookassaConfigured } from "@/lib/yookassaConfig";

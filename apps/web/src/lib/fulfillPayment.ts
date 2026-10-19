@@ -1,12 +1,14 @@
 import { ApiError } from "@/lib/apiErrors";
-import { parseBillingInterval } from "@/lib/billingInterval";
+import { chargeRubForTier } from "@/lib/billingCharge";
+import { annualChargeRubFromCatalogMonthly, parseBillingInterval } from "@/lib/billingInterval";
 import {
   findPaymentByYooId,
   markPaymentSucceeded,
 } from "@/lib/billingPayments";
+import { enableAutopay, saveActivePaymentMethod } from "@/lib/autopay";
 import { activateSubscription } from "@/lib/subscriptionActivate";
 import type { PlanTier } from "@/lib/subscriptionTiers";
-import { fetchYooKassaPayment } from "@/lib/yookassaClient";
+import { describeYooMethod, fetchYooKassaPayment } from "@/lib/yookassaClient";
 
 function parseTier(v: string | undefined): PlanTier | null {
   if (v === "basic" || v === "pro") return v;
@@ -46,7 +48,23 @@ export async function fulfillYooKassaPayment(
 
   const interval = parseBillingInterval(row.billing_interval ?? remote.metadata?.billing_interval);
 
-  await activateSubscription(row.user_id, tier, { interval });
+  const activated = await activateSubscription(row.user_id, tier, { interval });
+  const method = remote.payment_method;
+  if (method?.id) {
+    await saveActivePaymentMethod(row.user_id, {
+      externalId: method.id,
+      type: method.type || "bank_card",
+      title: describeYooMethod(method),
+      purpose: tier,
+    });
+    const monthly = chargeRubForTier(tier);
+    await enableAutopay(row.user_id, {
+      tier,
+      interval,
+      amountRub: interval === "year" ? annualChargeRubFromCatalogMonthly(monthly) : monthly,
+      nextChargeAt: activated.expiresAt,
+    });
+  }
   await markPaymentSucceeded(yooPaymentId, true);
 
   return { activated: true, userId: row.user_id, tier };

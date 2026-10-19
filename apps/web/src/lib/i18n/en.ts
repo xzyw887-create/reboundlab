@@ -8,10 +8,10 @@ export const en = {
     tagline: "Crypto strategy backtesting",
   },
   nav: {
-    product: "Product",
-    howItWorks: "How it works",
+    home: "Home",
+    features: "Features",
     pricing: "Pricing",
-    help: "Help",
+    help: "Contacts",
     calculator: "Terminal",
     login: "Log in",
     signup: "Sign up",
@@ -23,8 +23,8 @@ export const en = {
   },
   landing: {
     heroLabel: "Binance USDT-M · minute bars",
-    heroTitle: "Backtest bounce strategies",
-    heroTitleAccent: " on crypto futures",
+    heroTitle: "Time is the main resource",
+    heroTitleAccent: "in trading",
     heroLead:
       "Validate your strategy on Binance USDT-M history — without scrolling thousands of candles by hand.",
     whyLead:
@@ -45,39 +45,37 @@ export const en = {
     trialActiveUntil: "Trial until {date}",
     trialEndedNote: "Trial ended — choose Basic or Pro to continue",
     stats: {
-      pairsFallback: "USDT-M pairs loading…",
-      historyFallback: "1-minute exchange data",
-      historyDynamic: "Up to {depth} of 1m data",
-      engine: "Funding + taker fees",
+      yearsValue: "5+ years",
+      yearsCaption: "of Binance data",
+      candlesValue: "100M+",
+      candlesCaption: "minute candles",
+      accuracyValue: "High accuracy",
+      accuracyCaption: "of execution",
     },
     featuresTitle: "Everything to validate your edge",
     featuresLabel: "Features",
     productShowcase: {
-      label: "Product",
+      label: "Features",
       title: "What you get after a backtest in the terminal",
       lead:
         "Not a vague “AI backtest” — a concrete report: trades on the chart, fill table, run compare, and PnL curve — matching the live terminal.",
       ctaTerminal: "Open terminal",
-      ctaHow: "How it works",
       quickNavLabel: "Site sections",
       slides: [
         {
           eyebrow: "Chart",
-          title: "Candles with entries and exits",
-          body:
-            "Every fill is anchored in time — see where the strategy entered, exited, and how price moved in between, without scrolling thousands of bars by hand.",
+          title: "Every trade on one chart",
+          body: "Clear visualization",
         },
         {
-          eyebrow: "Trades",
-          title: "Results table with fees and funding",
-          body:
-            "Full run log: side, time, per-trade PnL. Reconcile bot logic and export CSV for your own spreadsheets.",
+          eyebrow: "Table",
+          title: "Table of values",
+          body: "Detailed breakdown",
         },
         {
-          eyebrow: "Compare",
-          title: "Two backtests side by side — A and B",
-          body:
-            "Save a run, tweak one parameter, compare return %, drawdown, and trade count — how you pick what works, not what looks good on paper.",
+          eyebrow: "Result",
+          title: "PnL and the results table",
+          body: "Result summary",
         },
         {
           eyebrow: "Report",
@@ -171,7 +169,6 @@ export const en = {
     tradesOpen: "open",
     chart: "Chart",
     chartTitle: "Price + trades",
-    chartTimeframeHint: "Chart view only — backtest always runs on 1m candles",
     runBacktestHint: "Click Run backtest",
     algorithm: "How the algorithm works",
     tradesTable: "Trades",
@@ -204,32 +201,6 @@ export const en = {
     platformTag: "Crypto strategy backtesting",
     tabCalculator: "Backtest",
     tabHistory: "History",
-    exportCsv: "Export table",
-  },
-  exportPage: {
-    title: "Trades export",
-    period: "{start} — {end}",
-    tradesCount: "{count} trades",
-    downloadCsv: "Download CSV",
-    empty: "No export data. Run a backtest and export again from the terminal.",
-    closeTab: "Close tab",
-    backToTerminal: "← Back to terminal",
-    columns: {
-      symbol: "Symbol",
-      opened: "Opened",
-      closed: "Closed",
-      status: "Status",
-      reason: "Close reason",
-      entry: "Entry",
-      exit: "Exit",
-      avg: "Avg price",
-      leverage: "Leverage",
-      margin: "Margin",
-      pnl: "PnL",
-      netPnl: "Net PnL",
-      fees: "Fees",
-      funding: "Funding",
-    },
   },
   report: {
     title: "Detailed summary",
@@ -323,6 +294,13 @@ export const en = {
     choosePlan: "Choose a plan",
     viewAllPlans: "View all plans",
     openTerminal: "Open terminal",
+    paymentMethod: "Payment method",
+    noPaymentMethod: "Not linked",
+    autopay: "Auto-renewal",
+    autopayOn: "On",
+    autopayOff: "Off",
+    cancelAutopay: "Cancel subscription",
+    unlinkCard: "Remove card",
     loading: "Loading…",
     stubBillingNote:
       "Checkout stub: billing period follows calendar renewal (first payment day → same day next month). Card payments after YooKassa.",
@@ -491,54 +469,6 @@ export const en = {
     q: "Registration required?",
     a: tc.trialFaqA,
   },
-  howItWorks: {
-    title: "How it works",
-    subtitle: "Registration, trial, backtest, and subscription",
-    intro:
-      "BackTest Pro is a web service: register → trial → backtest in the browser → subscribe → access by plan. No download required.",
-    steps: [
-      {
-        n: "1",
-        title: "Register",
-        text: tc.howTrialStepText,
-      },
-      {
-        n: "2",
-        title: "Open the terminal",
-        text: "Pick coins, date range, strategy parameters, and click Run backtest.",
-      },
-      {
-        n: "3",
-        title: "Review results",
-        text: "Charts, trades, PnL, fees, and funding — modeled on Binance USDT-M.",
-      },
-      {
-        n: "4",
-        title: "Choose a plan",
-        text: "Basic — Single mode. Pro — Multi up to 10 coins, averaging, trailing. Automatic — coming soon.",
-      },
-      {
-        n: "5",
-        title: "License in your account",
-        text: "After checkout your plan is active under Account. The terminal unlocks features for your tier.",
-      },
-    ],
-    feesTitle: "Fees & simulation rules",
-    feesIntro:
-      "The engine uses Binance USDT-M defaults unless you override fee_rate in advanced API calls.",
-    fees: [
-      "Taker fee: 0.05% (0.0005) per fill — applied on every open, DCA add, and close.",
-      "Maker fee is not modeled separately; market-style entries use the taker rate.",
-      "Funding: historical funding rates from Binance, charged every 8 hours on open notional.",
-      "Liquidation: cross margin with Binance maintenance margin tiers (MMR).",
-      "Slippage and order book depth are not simulated — fills at candle close/high logic per bar.",
-    ],
-    dataTitle: "Market data",
-    dataText:
-      "1-minute OHLCV candles and funding history from Binance USDT-M Futures (public market data). Coverage depends on when each pair was listed.",
-    ctaTrial: tc.ctaTrial,
-    ctaPricing: "View plans",
-  },
   about: {
     title: "About us",
     subtitle: "BackTest Pro",
@@ -547,8 +477,8 @@ export const en = {
     p3: "The product is in active development. Automatic parameter search and payment integrations are on the roadmap.",
   },
   help: {
-    title: "Support",
-    subtitle: "FAQ and contact channels",
+    title: "Contacts",
+    subtitle: "Contact channels",
     email: "Email",
     emailHint: "Billing, account access, and product questions.",
     faqTitle: "Frequently asked questions",
@@ -570,7 +500,11 @@ export const en = {
     faq: [
       {
         q: "What market is simulated?",
-        a: "Binance USDT-M perpetual futures: USDT margin, 1-minute candles, funding every 8 hours, 0.05% taker fee. Spot and COIN-M are not supported.",
+        a: "Binance USDT-M perpetual futures, USDT margin. Minute candles and funding come from Binance USDT-M Futures (public market data). The available range depends on when the pair was listed. Spot and COIN-M are not supported.",
+      },
+      {
+        q: "Fees and simulation rules",
+        a: "The engine uses standard Binance USDT-M values (default fee 0.0005). Taker 0.05% (0.0005) on every fill — entry, averaging, and close. Maker is not modeled separately; market-style fills use the taker rate. Funding: historical Binance rates, every 8 hours on open notional. Liquidation: cross margin with Binance MMR tiers. Slippage and the order book are not simulated.",
       },
       {
         q: "How long is the trial?",
@@ -650,7 +584,7 @@ export const en = {
   plans: {
     trial: {
       name: "Trial",
-      tagline: "No card",
+      tagline: "Card to continue",
       pricePeriod: tc.plansTrial.pricePeriod,
       priceNote: tc.plansTrial.priceNote,
       cta: "Start free trial",

@@ -8,6 +8,8 @@ import { query } from "@/lib/db";
 import { canonicalEmail } from "@/lib/emailCanonical";
 import { isDisposableEmail } from "@/lib/disposableEmailDomains";
 import { ensureBillingSchema } from "@/lib/ensureBillingSchema";
+import { chargeDueForUser } from "@/lib/chargeDue";
+import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
 import {
   telegramDisplayNameFromPayload,
   telegramPlaceholderEmail,
@@ -41,6 +43,10 @@ export interface AuthUser {
   subscriptionExpired: boolean;
   /** День месяца первой оплаты (1–31), null на trial */
   billingAnchorDay: number | null;
+  trialStarted: boolean;
+  paymentMethodBound: boolean;
+  paymentMethodTitle: string | null;
+  autopayEnabled: boolean;
   telegramId: number | null;
   telegramUsername: string | null;
   telegramDisplayName: string | null;
@@ -107,7 +113,7 @@ export function clearSessionCookie() {
   });
 }
 
-export async function getAuthUser(): Promise<AuthUser | null> {
+export async function getAuthUser(opts?: { renew?: boolean }): Promise<AuthUser | null> {
   const session = await readSessionToken();
   if (!session) return null;
 
@@ -121,12 +127,16 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     status: string;
     expires_at: Date | null;
     billing_anchor_day: number | null;
+    trial_started: boolean;
+    autopay_enabled: boolean;
+    next_charge_at: Date | null;
     created_at: Date;
     telegram_id: string | null;
     telegram_username: string | null;
     telegram_display_name: string | null;
   }>(
-    `SELECT u.id, u.email, p.tier, s.status, s.expires_at, s.billing_anchor_day, u.created_at,
+    `SELECT u.id, u.email, p.tier, s.status, s.expires_at, s.billing_anchor_day,
+            s.trial_started, s.autopay_enabled, s.next_charge_at, u.created_at,
             u.telegram_id, u.telegram_username, u.telegram_display_name
      FROM core.users u
      JOIN core.subscriptions s ON s.user_id = u.id
@@ -139,6 +149,30 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 
   const row = rows[0];
   if (!row) return null;
+
+  if (
+    opts?.renew !== false &&
+    row.autopay_enabled &&
+    row.next_charge_at &&
+    row.next_charge_at.getTime() <= Date.now() &&
+    !isDevLocalTesterAccount(row.email)
+  ) {
+    try {
+      await chargeDueForUser(row.id);
+    } catch (err) {
+      console.error("[autopay]", err);
+    }
+    return getAuthUser({ renew: false });
+  }
+
+  const methods = await query<{ title: string | null }>(
+    `SELECT title FROM core.saved_payment_methods
+     WHERE user_id = $1 AND status = 'active'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [row.id]
+  );
+  const method = methods[0];
 
   const expiresAt = row.expires_at ? row.expires_at.toISOString() : null;
   const pastExpiry =
@@ -157,6 +191,10 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     trialExpired,
     subscriptionExpired,
     billingAnchorDay: row.billing_anchor_day,
+    trialStarted: row.trial_started,
+    paymentMethodBound: Boolean(method),
+    paymentMethodTitle: method?.title ?? null,
+    autopayEnabled: row.autopay_enabled,
     telegramId: row.telegram_id != null ? Number(row.telegram_id) : null,
     telegramUsername: row.telegram_username,
     telegramDisplayName: row.telegram_display_name,
@@ -306,6 +344,7 @@ export function authUserJson(user: AuthUser) {
   return {
     id: user.id,
     email: user.email,
+    devLocalTester: isDevLocalTesterAccount(user.email),
     planTier: user.planTier,
     planDbTier: user.planDbTier,
     subscriptionStatus: user.subscriptionStatus,
@@ -314,6 +353,10 @@ export function authUserJson(user: AuthUser) {
     trialExpired: user.trialExpired,
     subscriptionExpired: user.subscriptionExpired,
     billingAnchorDay: user.billingAnchorDay,
+    trialStarted: user.trialStarted,
+    paymentMethodBound: user.paymentMethodBound,
+    paymentMethodTitle: user.paymentMethodTitle,
+    autopayEnabled: user.autopayEnabled,
     telegramId: user.telegramId,
     telegramUsername: user.telegramUsername,
     telegramDisplayName: user.telegramDisplayName,

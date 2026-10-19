@@ -5,6 +5,7 @@ export type ApiErrorCode =
   | "AUTH_REQUIRED"
   | "TRIAL_EXPIRED"
   | "SUBSCRIPTION_EXPIRED"
+  | "PAYMENT_METHOD_REQUIRED"
   | "PERIOD_REQUIRED"
   | "DATE_START_AFTER_END"
   | "DATE_OUT_OF_RANGE"
@@ -74,6 +75,10 @@ const MSGS: Record<ApiErrorCode, Record<ApiLocale, string>> = {
   SUBSCRIPTION_EXPIRED: {
     ru: "Подписка закончилась — продлите тариф Basic или Pro",
     en: "Subscription ended — renew Basic or Pro",
+  },
+  PAYMENT_METHOD_REQUIRED: {
+    ru: "Привяжите карту или СБП на странице тарифов — без этого терминал не открывается",
+    en: "Link a card or SBP on the pricing page to open the terminal",
   },
   PERIOD_REQUIRED: {
     ru: "Укажите период теста",

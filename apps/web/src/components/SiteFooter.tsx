@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SupportContacts } from "@/components/SupportContacts";
 import { formatTpl, useLocale } from "@/lib/i18n";
 
 export function SiteFooter() {
@@ -9,6 +10,9 @@ export function SiteFooter() {
 
   return (
     <footer className="site-footer">
+      <div className="site-footer-contacts">
+        <SupportContacts />
+      </div>
       <div className="site-footer-bar">
         <p className="site-footer-disclaimer">{t.footer.disclaimerShort}</p>
         <p className="site-footer-copy">

@@ -27,11 +27,13 @@ export function quoteCheckoutAmount(
   user: PricingUserState & {
     expiresAt: string | null;
     billingAnchorDay: number | null;
+    email?: string;
   },
   tier: "basic" | "pro",
-  intervalRaw: unknown
+  intervalRaw: unknown,
+  devTester = false
 ): CheckoutQuote {
-  assertCanPurchaseTier(user, tier);
+  assertCanPurchaseTier(user, tier, devTester);
   const interval = parseBillingInterval(intervalRaw);
 
   const monthlyCharge = chargeRubForTier(tier);
@@ -39,6 +41,7 @@ export function quoteCheckoutAmount(
   const proMonthly = chargeRubForTier("pro");
 
   const onBasic =
+    !devTester &&
     user.planTier === "basic" &&
     !user.subscriptionExpired &&
     tier === "pro";

@@ -15,9 +15,9 @@ export function LegalPageShell({
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       <main className="flex-1 landing-container py-10 sm:py-14 max-w-3xl">
-        <header className="mb-8 space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">{title}</h1>
-          {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
+        <header className="mb-8 space-y-3">
+          <h1 className="page-title">{title}</h1>
+          {subtitle && <p className="text-sm sm:text-base text-muted leading-relaxed">{subtitle}</p>}
         </header>
         <div className="prose-site space-y-4 text-sm text-gray-300 leading-relaxed">{children}</div>
       </main>

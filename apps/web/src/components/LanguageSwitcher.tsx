@@ -1,30 +1,77 @@
 "use client";
 
-import { useLocale } from "@/lib/i18n";
+import { useEffect, useRef, useState } from "react";
+import { useLocale, type Locale } from "@/lib/i18n";
+
+const OPTIONS: { code: Locale; label: string }[] = [
+  { code: "ru", label: "RU" },
+  { code: "en", label: "EN" },
+];
 
 export function LanguageSwitcher() {
   const { locale, setLocale } = useLocale();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const current = OPTIONS.find((o) => o.code === locale) ?? OPTIONS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
-    <div
-      className="flex items-center rounded-lg border border-border/80 bg-panel-inner/80 p-0.5 text-xs font-medium"
-      role="group"
-      aria-label="Language"
-    >
-      {(["en", "ru"] as const).map((code) => (
-        <button
-          key={code}
-          type="button"
-          onClick={() => setLocale(code)}
-          className={`px-2.5 py-1 rounded-md uppercase transition-colors ${
-            locale === code
-              ? "bg-accent/25 text-sky-100 border border-accent/40"
-              : "text-muted hover:text-gray-200"
-          }`}
-        >
-          {code}
-        </button>
-      ))}
+    <div className="lang-switch" ref={rootRef}>
+      <button
+        type="button"
+        className="lang-switch-btn"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label="Language"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {current.label}
+        <svg viewBox="0 0 16 16" className="lang-switch-chevron" aria-hidden>
+          <path
+            d="M4 6l4 4 4-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <ul className="lang-switch-menu" role="listbox">
+          {OPTIONS.map((opt) => (
+            <li key={opt.code}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={opt.code === locale}
+                className={`lang-switch-option ${opt.code === locale ? "lang-switch-option--active" : ""}`}
+                onClick={() => {
+                  setLocale(opt.code);
+                  setOpen(false);
+                }}
+              >
+                {opt.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

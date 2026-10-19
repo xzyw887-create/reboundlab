@@ -7,17 +7,20 @@ import {
 } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ensureTelegramAuthSchema } from "@/lib/telegramLogin";
+import { trialExpiresIntervalSql } from "@/lib/trialPolicy";
 
 /** Фиксированный dev-пользователь (не Telegram). */
 export const DEV_LOCAL_EMAIL = "dev-local@backtestpro.test";
 export const DEV_LOCAL_DISPLAY_NAME = "Dev Local";
 
-/** Сервер: только `npm run dev` + явный флаг в .env.local */
+/** Сервер: только локальный `npm run dev`. На production-сборке выключено. */
 export function devLocalAuthAllowed(): boolean {
-  return (
-    process.env.NODE_ENV === "development" &&
-    process.env.DEV_LOCAL_AUTH === "1"
-  );
+  return process.env.NODE_ENV === "development";
+}
+
+/** Тестировщик: dev-local аккаунт без Telegram (не для production). */
+export function isDevLocalTesterAccount(email: string | null | undefined): boolean {
+  return devLocalAuthAllowed() && email === DEV_LOCAL_EMAIL;
 }
 
 export async function loginOrCreateDevLocalUser(): Promise<AuthUser> {

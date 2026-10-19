@@ -4,17 +4,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        surface: "#08090b",
-        panel: "#0f1114",
-        "panel-inner": "#14171c",
-        border: "#1e2228",
-        muted: "#7a8494",
-        accent: "#2563eb",
+        surface: "#050a12",
+        panel: "#0b1220",
+        "panel-inner": "#101827",
+        border: "#1c2a3d",
+        muted: "#8b97a8",
+        accent: "#22d3ee",
         gold: "#f5a623",
       },
       fontFamily: {
         sans: [
-          "Inter",
+          "Manrope",
           "system-ui",
           "-apple-system",
           "Segoe UI",

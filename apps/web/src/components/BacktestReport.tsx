@@ -77,7 +77,7 @@ export function BacktestReport({ result }: Props) {
   ];
 
   return (
-    <div className="mt-4 space-y-4 border-t border-border/50 pt-4">
+    <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold text-white mb-1">{t.report.title}</h3>
         <p className="text-xs text-muted mb-3">{t.report.subtitle}</p>

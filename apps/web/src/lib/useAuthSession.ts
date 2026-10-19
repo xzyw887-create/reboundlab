@@ -12,6 +12,9 @@ export interface SessionUser {
   telegramDisplayName?: string | null;
   planTier: PlanTier;
   trialExpired: boolean;
+  subscriptionExpired?: boolean;
+  paymentMethodBound?: boolean;
+  devLocalTester?: boolean;
   expiresAt: string | null;
   registeredAt: string;
 }

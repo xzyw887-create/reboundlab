@@ -185,20 +185,6 @@ export function StrategyCompareColumn({ run }: { run: SavedRun }) {
         </div>
       </div>
 
-      {result.pnl_curve.length > 0 && (
-        <div className="card-pro">
-          <div className="card-pro-body py-2">
-            <PnlChart
-              data={result.pnl_curve}
-              initialDeposit={s.initial_deposit}
-              periodStart={result.meta?.start_date ?? run.params.start_date}
-              periodEnd={result.meta?.end_date ?? run.params.end_date}
-              height={110}
-            />
-          </div>
-        </div>
-      )}
-
       <div className="card-pro">
         <div className="card-pro-body">
           <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
@@ -216,6 +202,20 @@ export function StrategyCompareColumn({ run }: { run: SavedRun }) {
           />
         </div>
       </div>
+
+      {result.pnl_curve.length > 0 && (
+        <div className="card-pro">
+          <div className="card-pro-body py-2">
+            <PnlChart
+              data={result.pnl_curve}
+              initialDeposit={s.initial_deposit}
+              periodStart={result.meta?.start_date ?? run.params.start_date}
+              periodEnd={result.meta?.end_date ?? run.params.end_date}
+              height={110}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

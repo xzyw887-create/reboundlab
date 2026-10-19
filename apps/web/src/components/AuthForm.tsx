@@ -8,6 +8,7 @@ import { useState } from "react";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { useLocale } from "@/lib/i18n";
 import { apiFetch } from "@/lib/clientFetch";
+import { pathAfterLogin } from "@/lib/postLoginPath";
 import { showDevLocalAuthUi } from "@/lib/devLocalAuthFlags";
 import { showEmailPasswordAuthUi } from "@/lib/emailPasswordAuthFlags";
 
@@ -37,7 +38,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
       const res = await apiFetch("/api/auth/dev-local", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.auth.errorGeneric);
-      window.location.href = next;
+      window.location.href = pathAfterLogin(data.user, next);
     } catch (e) {
       setError(e instanceof Error ? e.message : t.auth.errorGeneric);
       setDevLoading(false);
@@ -64,7 +65,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
             : msg
         );
       }
-      window.location.href = next;
+      window.location.href = pathAfterLogin(data.user, next);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.auth.errorGeneric);
       setEmailLoading(false);

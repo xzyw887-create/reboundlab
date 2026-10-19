@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { useLocale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/en";
@@ -88,54 +87,78 @@ function MockTradesTable({
   m,
   demo,
   trades: tr,
-  exportCols,
 }: {
   m: Mocks;
   demo: ProductShowcaseDemo;
   trades: Dictionary["trades"];
-  exportCols: Dictionary["exportPage"]["columns"];
 }) {
+  const rows = demo.tableRows.slice(0, 5);
   return (
-    <div className="product-mock product-mock--trades" aria-hidden>
-      <div className="product-mock-bar">
+    <div className="feature-sheet" aria-hidden>
+      <div className="feature-sheet-bar">
         <span>{m.tradesTitle}</span>
-        <span className="mono text-muted">
-          {demo.closedCount} {m.tradesClosedSuffix}
+        <span className="mono">
+          {rows.length} {m.tradesClosedSuffix}
         </span>
       </div>
-      <div className="product-mock-table-scroll">
-        <table className="product-mock-table product-mock-table--wide">
-          <thead>
-            <tr>
-              <th>{tr.coin}</th>
-              <th>{tr.entryPrice}</th>
-              <th>{tr.position}</th>
-              <th>{tr.exit}</th>
-              <th>{tr.account}</th>
-              <th>{tr.pnl}</th>
-              <th>{tr.pnlPct}</th>
-              <th>{tr.status}</th>
+      <table className="feature-sheet-table">
+        <thead>
+          <tr>
+            <th>{tr.coin}</th>
+            <th>{tr.entryPrice}</th>
+            <th>{tr.exit}</th>
+            <th>{tr.pnl}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              <td className="feature-sheet-coin">{row.coin}</td>
+              <td className="mono">{row.entry}</td>
+              <td className="mono">{row.exit}</td>
+              <td className={`mono ${row.pnl >= 0 ? "feature-sheet-pos" : "feature-sheet-neg"}`}>
+                {fmtSignedUsd(row.pnl)}
+              </td>
             </tr>
-          </thead>
-          <tbody className="mono">
-            {demo.tableRows.map((row, i) => (
-              <tr key={i}>
-                <td className="text-accent">{row.coin}</td>
-                <td>{row.entry}</td>
-                <td>{row.position}</td>
-                <td>{row.exit}</td>
-                <td>{row.account}</td>
-                <td className={row.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
-                  {fmtSignedUsd(row.pnl)}
-                </td>
-                <td className={row.pnlPct >= 0 ? "text-emerald-400" : "text-red-400"}>
-                  {fmtSignedPct(row.pnlPct)}
-                </td>
-                <td className="text-muted">{exportCols.closed}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MockResults({
+  demo,
+  report,
+}: {
+  demo: ProductShowcaseDemo;
+  report: Dictionary["report"];
+}) {
+  const r = demo.report;
+  const stats = [
+    [report.winRate, `${r.winRatePct}%`],
+    [report.maxDrawdown, `−${r.maxDdPct.toFixed(1)}%`],
+    [report.totalFees, `$${r.feesUsd.toFixed(2)}`],
+    [report.totalFunding, fmtSignedUsd(r.fundingUsd)],
+  ];
+  return (
+    <div className="feature-sheet" aria-hidden>
+      <div className="feature-sheet-pnl">
+        <span>PnL</span>
+        <strong className={r.netPnlUsd >= 0 ? "feature-sheet-pos" : "feature-sheet-neg"}>
+          {fmtSignedUsd(r.netPnlUsd)}
+        </strong>
+      </div>
+      <svg viewBox="0 0 360 96" className="feature-sheet-chart" aria-hidden>
+        <path d={r.equityPath} fill="none" stroke="#22d3ee" strokeWidth="2.4" />
+      </svg>
+      <div className="feature-sheet-stats">
+        {stats.map(([label, value]) => (
+          <div key={String(label)} className="feature-sheet-stat">
+            <span>{label}</span>
+            <strong className="mono">{value}</strong>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -242,15 +265,10 @@ function SlideVisual({
       return <MockChartTrades m={m} demo={demo} labels={dict.app} />;
     case 1:
       return (
-        <MockTradesTable
-          m={m}
-          demo={demo}
-          trades={dict.trades}
-          exportCols={dict.exportPage.columns}
-        />
+        <MockTradesTable m={m} demo={demo} trades={dict.trades} />
       );
     case 2:
-      return <MockCompare m={m} demo={demo} />;
+      return <MockResults demo={demo} report={dict.report} />;
     case 3:
       return (
         <MockPnlReport m={m} demo={demo} report={dict.report} appLabels={dict.app} />
@@ -269,71 +287,28 @@ export function ProductShowcase() {
     setDemo(generateProductShowcaseDemo());
   }, []);
 
-  if (!demo) {
-    return (
-      <section id="features" className="landing-section product-showcase" aria-busy="true">
-        <div className="landing-container">
-          <div className="max-w-2xl mb-12 md:mb-16 space-y-3">
-            <p className="label-caps">{ps.label}</p>
-            <h2 className="text-2xl sm:text-3xl font-medium text-gray-50 leading-snug">{ps.title}</h2>
-            <p className="text-muted leading-relaxed">{ps.lead}</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section id="features" className="landing-section product-showcase">
+    <section id="features" className="feature-stage-section product-showcase scroll-mt-24">
       <div className="landing-container">
-        <div className="max-w-2xl mb-12 md:mb-16 space-y-3">
-          <p className="label-caps">{ps.label}</p>
-          <h2 className="text-2xl sm:text-3xl font-medium text-gray-50 leading-snug">{ps.title}</h2>
-          <p className="text-muted leading-relaxed">{ps.lead}</p>
-        </div>
-
-        <div className="product-showcase-stack">
-          {ps.slides.map((slide, index) => {
-            const reverse = index % 2 === 1;
-            return (
-              <article
-                key={slide.eyebrow}
-                className={`product-showcase-row${reverse ? " product-showcase-row--reverse" : ""}`}
-              >
-                <div className="product-showcase-copy space-y-4">
-                  <p className="label-caps text-accent">{slide.eyebrow}</p>
-                  <h3 className="text-xl sm:text-2xl font-medium text-gray-50 leading-snug">
-                    {slide.title}
-                  </h3>
-                  <p className="text-sm sm:text-base text-muted leading-relaxed max-w-md">
-                    {slide.body}
+        <p className="page-kicker text-center">{ps.label}</p>
+        {demo && (
+          <div className="feature-stage">
+            {ps.slides.slice(0, 3).map((slide, index) => (
+              <div key={slide.eyebrow} className="feature-stage-item">
+                <article className="feature-stage-card">
+                  <p className="feature-stage-pill">
+                    <span>{slide.eyebrow}</span>
                   </p>
-                </div>
-                <div className="product-showcase-visual-frame">
-                  <div
-                    className={`product-showcase-visual${
-                      index === 1 ? " product-showcase-visual--table" : ""
-                    }`}
-                  >
+                  <h3 className="feature-stage-title">{slide.title}</h3>
+                  <div className="feature-stage-visual">
                     <SlideVisual index={index} m={ps.mocks} demo={demo} dict={t} />
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        <nav
-          className="mt-14 flex flex-wrap gap-3 justify-center sm:justify-start"
-          aria-label={ps.quickNavLabel}
-        >
-          <Link href="/how-it-works" className="landing-btn-outline inline-flex px-6">
-            {t.nav.howItWorks}
-          </Link>
-          <Link href="/help" className="landing-btn-outline inline-flex px-6">
-            {t.nav.help}
-          </Link>
-        </nav>
+                </article>
+                <p className="feature-stage-caption">{slide.body}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

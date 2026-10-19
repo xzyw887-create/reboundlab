@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BillingIntervalSwitch } from "@/components/BillingIntervalSwitch";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { PricingTierGrid } from "@/components/PricingTierGrid";
 import { formatRubAmount } from "@/lib/billingCharge";
@@ -26,8 +27,11 @@ type AuthSnapshot = {
   planTier: PlanTier;
   trialExpired: boolean;
   subscriptionExpired: boolean;
+  trialStarted?: boolean;
+  paymentMethodBound?: boolean;
   expiresAt: string | null;
   billingAnchorDay: number | null;
+  devLocalTester?: boolean;
 };
 
 function persistPendingPaymentId(id: string) {
@@ -84,6 +88,7 @@ export function PricingWithCheckout() {
   const [returnPolling, setReturnPolling] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const paymentReturnStarted = useRef(false);
+  const bindReturnStarted = useRef(false);
 
   function displayPlans(): SubscriptionPlan[] {
     return localizedPlans(t, locale).map((plan) => {
@@ -187,10 +192,90 @@ export function PricingWithCheckout() {
     void pollPaymentReturn();
   }, [searchParams, authReady, loggedIn, authUser, pollPaymentReturn]);
 
+  useEffect(() => {
+    if (searchParams.get("bind") !== "return") return;
+    if (!authReady || !loggedIn) return;
+    if (bindReturnStarted.current) return;
+    bindReturnStarted.current = true;
+    setReturnPolling(true);
+    void (async () => {
+      try {
+        const res = await apiFetch("/api/billing/bind/complete");
+        const data = await res.json();
+        if (res.ok && data.ready) {
+          window.location.href = "/app";
+          return;
+        }
+        setError("Привязка ещё не подтверждена. Обновите страницу через минуту.");
+      } catch {
+        setError(t.pricingUi.paymentError);
+      } finally {
+        setReturnPolling(false);
+      }
+    })();
+  }, [searchParams, authReady, loggedIn, t.pricingUi.paymentError]);
+
+  async function switchLocalPlan(tier: "trial" | "basic" | "pro") {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await apiFetch("/api/dev/subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preset: tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Не удалось сменить тариф");
+      window.location.href = "/app";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.pricingUi.error);
+      setLoading(false);
+    }
+  }
+
+  async function bindTrialCard() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/billing/bind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "sbp", purpose: "trial" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
+      if (typeof data.confirmationUrl === "string" && data.confirmationUrl) {
+        window.location.href = data.confirmationUrl;
+        return;
+      }
+      window.location.href = "/app";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.pricingUi.error);
+      setLoading(false);
+    }
+  }
+
   function startCheckout(tier: PlanTier) {
+    if (
+      authUser?.devLocalTester &&
+      (tier === "trial" || tier === "basic" || tier === "pro")
+    ) {
+      void switchLocalPlan(tier);
+      return;
+    }
+
+    if (tier === "trial") {
+      if (!loggedIn) {
+        router.push("/login?next=/pricing");
+        return;
+      }
+      void bindTrialCard();
+      return;
+    }
+
     const plan = displayPlans().find((p) => p.tier === tier) ?? planByTier(tier);
-    if (!plan || plan.comingSoon || tier === "trial") return;
-    if (tier === "basic" || tier === "pro") {
+    if (!plan || plan.comingSoon) return;
+    if (!authUser?.devLocalTester && (tier === "basic" || tier === "pro")) {
       const st = paidTierState(tier, authUser);
       if (!st.enabled) return;
     }
@@ -233,10 +318,18 @@ export function PricingWithCheckout() {
       }
 
       if (billingMode.checkoutStub) {
+        const interval =
+          authUser &&
+          authUser.planTier === "basic" &&
+          !authUser.subscriptionExpired &&
+          checkoutPlan.tier === "pro"
+            ? "month"
+            : billingInterval;
+
         const res = await apiFetch("/api/subscription/activate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tier: checkoutPlan.tier }),
+          body: JSON.stringify({ tier: checkoutPlan.tier, interval }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
@@ -256,23 +349,25 @@ export function PricingWithCheckout() {
 
   const useYookassa = Boolean(billingMode?.yookassa);
 
-  const checkoutChargeLabel =
+  const checkoutQuote =
     checkoutPlan && authUser && (checkoutPlan.tier === "basic" || checkoutPlan.tier === "pro")
-      ? formatRubAmount(
-          quoteCheckoutAmount(
-            authUser,
-            checkoutPlan.tier,
-            authUser.planTier === "basic" &&
-              !authUser.subscriptionExpired &&
-              checkoutPlan.tier === "pro"
-              ? "month"
-              : billingInterval
-          ).amountRub
+      ? quoteCheckoutAmount(
+          authUser,
+          checkoutPlan.tier,
+          authUser.planTier === "basic" &&
+            !authUser.subscriptionExpired &&
+            checkoutPlan.tier === "pro"
+            ? "month"
+            : billingInterval,
+          Boolean(authUser.devLocalTester)
         )
       : null;
 
+  const checkoutChargeLabel = checkoutQuote ? formatRubAmount(checkoutQuote.amountRub) : null;
+
   const hideBillingToggle =
     authUser &&
+    !authUser.devLocalTester &&
     ((authUser.planTier === "basic" && !authUser.subscriptionExpired) ||
       (authUser.planTier === "pro" && !authUser.subscriptionExpired));
   const showBillingToggle = !hideBillingToggle;
@@ -302,40 +397,7 @@ export function PricingWithCheckout() {
       ) : (
         <>
           {showBillingToggle && (
-            <div className="flex justify-center mb-8">
-              <div
-                className="inline-flex rounded-xl border border-white/10 bg-black/30 p-1"
-                role="tablist"
-                aria-label="Период оплаты"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={billingInterval === "month"}
-                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                    billingInterval === "month"
-                      ? "bg-white/10 text-white"
-                      : "text-muted hover:text-gray-200"
-                  }`}
-                  onClick={() => setBillingInterval("month")}
-                >
-                  Помесячно
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={billingInterval === "year"}
-                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                    billingInterval === "year"
-                      ? "bg-white/10 text-white"
-                      : "text-muted hover:text-gray-200"
-                  }`}
-                  onClick={() => setBillingInterval("year")}
-                >
-                  Год −30%
-                </button>
-              </div>
-            </div>
+            <BillingIntervalSwitch value={billingInterval} onChange={setBillingInterval} />
           )}
           {authUser?.planTier === "basic" && !authUser.subscriptionExpired && (
             <p className="text-center text-xs text-muted mb-6 max-w-lg mx-auto">
@@ -348,6 +410,7 @@ export function PricingWithCheckout() {
             plans={displayPlans()}
             pricingUser={authUser}
             loggedIn={loggedIn}
+            devTester={Boolean(authUser?.devLocalTester)}
           />
         </>
       )}
@@ -359,6 +422,8 @@ export function PricingWithCheckout() {
         error={error}
         useYookassa={useYookassa}
         chargeOverride={checkoutChargeLabel}
+        checkoutQuote={checkoutQuote}
+        subscriptionExpiresAt={authUser?.expiresAt ?? null}
         onClose={() => {
           if (!loading) {
             setCheckoutPlan(null);

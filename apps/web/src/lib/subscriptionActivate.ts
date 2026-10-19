@@ -53,7 +53,7 @@ function isExpired(expiresAt: Date | null): boolean {
 export async function activateSubscription(
   userId: string,
   tier: PlanTier,
-  options?: { interval?: BillingInterval }
+  options?: { interval?: BillingInterval; devTesterForce?: boolean }
 ): Promise<{ tier: PlanTier; expiresAt: string; billingAnchorDay: number | null }> {
   const interval: BillingInterval = options?.interval === "year" ? "year" : "month";
   if (!PURCHASABLE.includes(tier)) {

@@ -36,7 +36,6 @@ import { useLocale, formatTpl } from "@/lib/i18n";
 import { closedOnlySummary } from "@/lib/closedOnlySummary";
 import { BacktestReport } from "@/components/BacktestReport";
 import { RunHistoryPanel, type SavedBacktestRun } from "@/components/RunHistoryPanel";
-import { openTradesExportPage } from "@/lib/exportTradesCsv";
 import { paramsSummary } from "@/lib/compareRuns";
 import { DEFAULT_BACKTEST_PARAMS } from "@/lib/defaultParams";
 import { apiFetch } from "@/lib/clientFetch";
@@ -52,6 +51,8 @@ interface ClientAuthUser {
   planTier: PlanTier;
   trialExpired: boolean;
   subscriptionExpired: boolean;
+  paymentMethodBound?: boolean;
+  devLocalTester?: boolean;
   expiresAt: string | null;
   registeredAt: string;
 }
@@ -180,7 +181,7 @@ export default function HomePage() {
   const authUserRef = useRef<ClientAuthUser | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const effectiveTier = useMemo(() => {
     if (!authUser) return "trial";
     if (authUser.trialExpired) return "trial";
@@ -334,6 +335,14 @@ export default function HomePage() {
         const user = data.user as ClientAuthUser | null;
         const saved = loadSavedParams(DEFAULT_PARAMS);
         if (user) {
+          const live =
+            Boolean(user.paymentMethodBound) &&
+            !user.trialExpired &&
+            !user.subscriptionExpired;
+          if (!user.devLocalTester && !live) {
+            router.replace("/pricing");
+            return;
+          }
           setAuthUser(user);
           authUserRef.current = user;
           const tier = user.trialExpired ? "trial" : user.planTier;
@@ -908,7 +917,6 @@ export default function HomePage() {
                       onChange={(e) => onChartTimeframeChange(e.target.value)}
                       className="bg-surface border border-border rounded-lg px-3 py-1 text-xs text-gray-300"
                       aria-label={t.app.chart}
-                      title={t.app.chartTimeframeHint}
                     >
                       {TIMEFRAME_OPTIONS.map((tf) => (
                         <option key={tf.value} value={tf.value}>
@@ -916,9 +924,6 @@ export default function HomePage() {
                         </option>
                       ))}
                     </select>
-                    <span className="text-[10px] text-gray-500 hidden sm:inline">
-                      {t.app.chartTimeframeHint}
-                    </span>
                   </>
                 )}
                 {result && result.mode === "multi" && s?.symbols && (
@@ -955,42 +960,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          {result && result.pnl_curve.length > 0 && (
-            <div className="card-pro">
-              <div className="card-pro-body py-3">
-              <PnlChart
-                data={result.pnl_curve}
-                initialDeposit={s?.initial_deposit ?? params.deposit}
-                periodStart={result.meta?.start_date ?? params.start_date}
-                periodEnd={result.meta?.end_date ?? params.end_date}
-                height={130}
-              />
-              </div>
-            </div>
-          )}
-
           {result && (
             <div className="card-pro">
               <div className="card-pro-body">
               <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                 <h2 className="font-semibold text-white">{t.app.tradesTable}</h2>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {s && <TradesOutcomeSummary summary={s} />}
-                  <button
-                    type="button"
-                    className="btn-ghost px-3 py-1 text-xs shrink-0"
-                    onClick={() =>
-                      openTradesExportPage(tableTrades, {
-                        filename: `backtest_${params.start_date}_${params.end_date}.csv`,
-                        periodStart: params.start_date,
-                        periodEnd: params.end_date,
-                        locale,
-                      })
-                    }
-                  >
-                    {t.app.exportCsv}
-                  </button>
-                </div>
+                {s && <TradesOutcomeSummary summary={s} />}
               </div>
               <TradesTable
                 trades={tableTrades}
@@ -1008,7 +983,28 @@ export default function HomePage() {
                 selected={selectedTrade}
                 onSelect={setSelectedTrade}
               />
-              <BacktestReport result={result} />
+              </div>
+            </div>
+          )}
+
+          {result && result.pnl_curve.length > 0 && (
+            <div className="card-pro">
+              <div className="card-pro-body py-3">
+              <PnlChart
+                data={result.pnl_curve}
+                initialDeposit={s?.initial_deposit ?? params.deposit}
+                periodStart={result.meta?.start_date ?? params.start_date}
+                periodEnd={result.meta?.end_date ?? params.end_date}
+                height={130}
+              />
+              </div>
+            </div>
+          )}
+
+          {result && (
+            <div className="card-pro">
+              <div className="card-pro-body">
+                <BacktestReport result={result} />
               </div>
             </div>
           )}

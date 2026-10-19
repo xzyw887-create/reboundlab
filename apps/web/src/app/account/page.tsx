@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { apiFetch } from "@/lib/clientFetch";
 import { useLocale } from "@/lib/i18n";
 import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
+import { DevLocalTesterPanel } from "@/components/DevLocalTesterPanel";
 import { userAccountLoginLabel } from "@/lib/userDisplayName";
 
 interface AccountUser {
@@ -22,6 +23,10 @@ interface AccountUser {
   subscriptionExpired: boolean;
   expiresAt: string | null;
   registeredAt: string;
+  devLocalTester?: boolean;
+  paymentMethodBound?: boolean;
+  paymentMethodTitle?: string | null;
+  autopayEnabled?: boolean;
 }
 
 function formatDate(iso: string | null): string {
@@ -35,6 +40,8 @@ export default function AccountPage() {
   const a = t.accountPage;
   const [user, setUser] = useState<AccountUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [billingBusy, setBillingBusy] = useState<"cancel" | "unlink" | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/auth/me")
@@ -49,6 +56,25 @@ export default function AccountPage() {
       })
       .catch(() => router.replace("/login?next=/account"));
   }, [router]);
+
+  async function billingAction(action: "cancel" | "unlink") {
+    setBillingBusy(action);
+    setBillingError(null);
+    try {
+      const res = await apiFetch("/api/billing/autopay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || a.loading);
+      if (data.user) setUser(data.user);
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : a.loading);
+    } finally {
+      setBillingBusy(null);
+    }
+  }
 
   async function logout() {
     await apiFetch("/api/auth/logout", { method: "POST" });
@@ -103,6 +129,25 @@ export default function AccountPage() {
               <h1 className="text-xl font-semibold text-white mt-1">{a.title}</h1>
             </div>
 
+            {user.devLocalTester && (
+              <DevLocalTesterPanel
+                user={user}
+                onUpdated={(u) =>
+                  setUser((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          planTier: u.planTier,
+                          trialExpired: u.trialExpired,
+                          subscriptionExpired: u.subscriptionExpired,
+                          expiresAt: u.expiresAt,
+                        }
+                      : prev
+                  )
+                }
+              />
+            )}
+
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
                 <dt className="text-muted">{loginLabel}</dt>
@@ -126,10 +171,6 @@ export default function AccountPage() {
                   {statusLabel}
                 </dd>
               </div>
-              <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
-                <dt className="text-muted">{a.registered}</dt>
-                <dd className="text-white">{formatDate(user.registeredAt)}</dd>
-              </div>
               {user.expiresAt && user.planTier !== "trial" && (
                 <>
                   <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
@@ -147,6 +188,17 @@ export default function AccountPage() {
                 </div>
               )}
             </dl>
+
+            {billingError && <p className="text-sm text-red-300">{billingError}</p>}
+
+            <button
+              type="button"
+              className="text-sm text-muted hover:text-white text-left disabled:opacity-60"
+              disabled={billingBusy !== null}
+              onClick={() => void billingAction("cancel")}
+            >
+              {a.cancelAutopay}
+            </button>
 
             {user.trialExpired || user.subscriptionExpired ? (
               <div className="rounded-xl border border-amber-600/40 bg-amber-950/30 p-4 text-sm text-amber-100 space-y-3">

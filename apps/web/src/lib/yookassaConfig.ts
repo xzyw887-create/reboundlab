@@ -26,6 +26,13 @@ export function yookassaCredentials(): { shopId: string; secret: string } | null
   return { shopId, secret };
 }
 
+export function yookassaBindReturnUrl(): string {
+  const base = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pricing`;
+  const u = new URL(base.includes("://") ? base : `https://${base}`);
+  u.searchParams.set("bind", "return");
+  return u.toString();
+}
+
 export function yookassaReturnUrl(localPaymentId?: string): string {
   const base =
     billingEnv("YOOKASSA_RETURN_URL")?.trim() ||

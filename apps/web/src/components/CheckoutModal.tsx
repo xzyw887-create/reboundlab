@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
-import { isBillingTestCharge } from "@/lib/billingCharge";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { CheckoutQuote } from "@/lib/billingCheckoutAmount";
+import { chargeRubForTier, isBillingTestCharge } from "@/lib/billingCharge";
+import { annualChargeRubFromCatalogMonthly } from "@/lib/billingInterval";
+import {
+  formatCheckoutDateRu,
+  recurringChargeConsentPhrase,
+  resolveNextChargeDate,
+  subscriptionPeriodLabel,
+} from "@/lib/checkoutSchedule";
+import { SELLER_DETAILS_ANCHOR } from "@/lib/legalSeller";
 import type { SubscriptionPlan } from "@/lib/subscriptionTiers";
+import { planByTier } from "@/lib/subscriptionTiers";
 import { planCheckoutCharge } from "@/lib/localizedPlans";
 import { useLocale } from "@/lib/i18n";
 
@@ -14,6 +25,8 @@ interface Props {
   useYookassa?: boolean;
   /** Точная сумма с сервера (год / апгрейд / тест) */
   chargeOverride?: string | null;
+  checkoutQuote?: CheckoutQuote | null;
+  subscriptionExpiresAt?: string | null;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -25,13 +38,17 @@ export function CheckoutModal({
   error,
   useYookassa = false,
   chargeOverride = null,
+  checkoutQuote = null,
+  subscriptionExpiresAt = null,
   onClose,
   onConfirm,
 }: Props) {
   const { t } = useLocale();
+  const [consent, setConsent] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setConsent(false);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -47,6 +64,22 @@ export function CheckoutModal({
 
   const charge = chargeOverride ?? planCheckoutCharge(plan, t);
   const testCharge = isBillingTestCharge(plan.tier);
+  const interval = checkoutQuote?.interval ?? "month";
+  const isUpgrade = checkoutQuote?.isUpgrade ?? false;
+  const catalogMonthly = planByTier(plan.tier)?.priceRub ?? 0;
+  const annualCharge =
+    catalogMonthly > 0 ? annualChargeRubFromCatalogMonthly(catalogMonthly) : 0;
+  const proMonthly = chargeRubForTier("pro");
+  const nextCharge = resolveNextChargeDate(interval, isUpgrade, subscriptionExpiresAt ?? null);
+  const recurringPhrase = recurringChargeConsentPhrase(
+    interval,
+    chargeRubForTier(plan.tier),
+    annualCharge,
+    isUpgrade,
+    proMonthly
+  );
+
+  const payDisabled = loading || !consent;
 
   return (
     <div
@@ -61,7 +94,7 @@ export function CheckoutModal({
           <div>
             <p className="label-caps text-sky-300/90">Оплата подписки</p>
             <h2 id="checkout-title" className="text-xl font-bold text-white mt-1">
-              {plan.name} — {charge}
+              {plan.name}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="pricing-window-close" aria-label="Закрыть">
@@ -79,27 +112,47 @@ export function CheckoutModal({
 
           {useYookassa ? (
             <p className="text-sm text-muted leading-relaxed">
-              Вы перейдёте на защищённую страницу оплаты{" "}
-              <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы,
-              доступные в кабинете). После успешного платежа тариф активируется автоматически;
-              период подписки — календарный месяц от дня оплаты.
+              Оплата на защищённой странице{" "}
+              <strong className="text-gray-300">ЮKassa</strong> (карта, СБП и другие способы в
+              кабинете). После успешного платежа тариф активируется автоматически.
             </p>
           ) : (
             <p className="text-sm text-muted leading-relaxed">
-              Режим разработки: без списания с карты. После «Оплатить» тариф активируется в
-              аккаунте (календарный месяц от «оплаты»).
+              Режим разработки: без списания с карты. После оплаты тариф активируется в аккаунте.
             </p>
           )}
 
-          <div className="checkout-summary">
+          <div className="checkout-summary space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted">Тариф</span>
               <span className="text-white font-medium">{plan.name}</span>
             </div>
-            <div className="flex justify-between text-sm mt-2">
-              <span className="text-muted">К оплате</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">Период подписки</span>
+              <span className="text-white font-medium">
+                {isUpgrade ? "доплата за апгрейд" : subscriptionPeriodLabel(interval)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm pt-1 border-t border-border/50">
+              <span className="text-muted">К оплате сегодня</span>
               <span className="text-white font-semibold tabular-nums">{charge}</span>
             </div>
+            {!isUpgrade && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">Следующее списание</span>
+                <span className="text-white font-medium tabular-nums">
+                  {formatCheckoutDateRu(nextCharge)}
+                </span>
+              </div>
+            )}
+            {isUpgrade && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">Продление Pro</span>
+                <span className="text-white font-medium tabular-nums">
+                  {formatCheckoutDateRu(nextCharge)}
+                </span>
+              </div>
+            )}
           </div>
 
           {!useYookassa && (
@@ -121,6 +174,40 @@ export function CheckoutModal({
             </div>
           )}
 
+          <ul className="text-xs text-muted space-y-1">
+            <li className="flex gap-2">
+              <span className="text-emerald-400 shrink-0" aria-hidden>
+                ✓
+              </span>
+              <span>Отменить автопродление можно через поддержку или в настройках аккаунта, когда функция доступна.</span>
+            </li>
+          </ul>
+
+          <label className="checkout-consent">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="checkout-consent-input"
+            />
+            <span className="checkout-consent-text text-xs leading-relaxed text-muted">
+              Подтверждая покупку, вы принимаете{" "}
+              <Link href="/terms" className="text-accent hover:underline" onClick={(e) => e.stopPropagation()}>
+                оферту
+              </Link>{" "}
+              и соглашаетесь на списание: сегодня — {charge}; при автопродлении — {recurringPhrase}. Реквизиты
+              исполнителя — в{" "}
+              <Link
+                href={`/terms#${SELLER_DETAILS_ANCHOR}`}
+                className="text-accent hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                оферте
+              </Link>
+              .
+            </span>
+          </label>
+
           {error && (
             <p className="text-sm text-red-300 bg-red-950/40 border border-red-800/50 rounded-xl p-2">
               {error}
@@ -129,14 +216,14 @@ export function CheckoutModal({
 
           <button
             type="button"
-            disabled={loading}
+            disabled={payDisabled}
             onClick={onConfirm}
-            className="btn-primary w-full"
+            className="btn-primary w-full disabled:opacity-45 disabled:cursor-not-allowed"
           >
             {loading
               ? "…"
               : useYookassa
-                ? `Перейти к оплате ${charge}`
+                ? `Оформить подписку ${plan.name}`
                 : `${t.pricingUi.pay} ${charge}`}
           </button>
         </div>

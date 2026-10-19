@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
+import { PageTransition } from "@/components/PageTransition";
 import { LocaleProvider } from "@/lib/i18n";
 import { trialCopy } from "@/lib/productPolicy";
 import "./globals.css";
 
 const metaTrial = trialCopy("en");
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
   display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -24,10 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" suppressHydrationWarning>
       <body
-        className={`${inter.className} min-h-screen bg-surface text-gray-100 antialiased font-sans overflow-x-clip overscroll-x-none`}
+        className={`${manrope.className} min-h-screen bg-surface text-gray-100 antialiased font-sans overflow-x-clip overscroll-x-none`}
       >
         <div className="min-h-screen overflow-x-clip overscroll-x-none">
-          <LocaleProvider>{children}</LocaleProvider>
+          <LocaleProvider>
+            <PageTransition>{children}</PageTransition>
+          </LocaleProvider>
         </div>
       </body>
     </html>

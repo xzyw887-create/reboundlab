@@ -5,6 +5,8 @@ export type PricingUserState = {
   planTier: PlanTier;
   trialExpired: boolean;
   subscriptionExpired: boolean;
+  trialStarted?: boolean;
+  paymentMethodBound?: boolean;
 };
 
 export type TierButtonState = {
@@ -24,9 +26,20 @@ function onActivePaid(u: PricingUserState): boolean {
 
 export function trialTierState(
   loggedIn: boolean,
-  user: PricingUserState | null
+  user: PricingUserState | null,
+  devTester = false
 ): TierButtonState {
+  if (devTester) {
+    return {
+      enabled: true,
+      label: "Пробный (тест)",
+      hint: "Dev-local: кнопки не блокируются, правила — только для реальных пользователей",
+    };
+  }
   if (!loggedIn || !user) {
+    return { enabled: true };
+  }
+  if (!user.trialStarted && !user.paymentMethodBound) {
     return { enabled: true };
   }
   if (onActiveTrial(user)) {

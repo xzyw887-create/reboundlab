@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/clientFetch";
+import { pathAfterLogin } from "@/lib/postLoginPath";
 import type { TelegramWidgetAuth } from "@/lib/telegramLogin";
 import { useLocale } from "@/lib/i18n";
 
@@ -29,11 +30,27 @@ interface Props {
   onError: (message: string | null) => void;
 }
 
+const localDevBypass = process.env.NODE_ENV === "development";
+
 export function TelegramLoginButton({ next, onError }: Props) {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
+
+  async function signInAsLocalUser() {
+    setLoading(true);
+    onError(null);
+    try {
+      const res = await apiFetch("/api/auth/dev-local", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.auth.errorGeneric);
+      window.location.href = pathAfterLogin(data.user, next);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : t.auth.errorGeneric);
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!botUsername || !containerRef.current) return;
@@ -51,7 +68,7 @@ export function TelegramLoginButton({ next, onError }: Props) {
         if (!res.ok) {
           throw new Error(data.error || t.auth.errorGeneric);
         }
-        window.location.href = next;
+        window.location.href = pathAfterLogin(data.user, next);
       } catch (e) {
         onError(e instanceof Error ? e.message : t.auth.errorGeneric);
         setLoading(false);
@@ -76,6 +93,22 @@ export function TelegramLoginButton({ next, onError }: Props) {
       el.innerHTML = "";
     };
   }, [botUsername, next, onError, t.auth.errorGeneric]);
+
+  if (localDevBypass) {
+    return (
+      <button
+        type="button"
+        className="telegram-widget-host w-full bg-transparent border-0 p-0 cursor-pointer disabled:opacity-60"
+        onClick={signInAsLocalUser}
+        disabled={loading}
+      >
+        <span className="btn-telegram-face">
+          <TelegramPlaneIcon />
+          <span>{loading ? t.auth.telegramSigningIn : t.auth.telegramButton}</span>
+        </span>
+      </button>
+    );
+  }
 
   if (!botUsername) {
     return (

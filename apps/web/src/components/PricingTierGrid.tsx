@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { SubscriptionPlan } from "@/lib/subscriptionTiers";
 import { localizedPlans } from "@/lib/localizedPlans";
 import {
@@ -60,6 +60,7 @@ function TierCard({
   popularLabel,
   soonLabel,
   buttonState,
+  devSwitch = false,
 }: {
   plan: SubscriptionPlan;
   onSelect?: (tier: SubscriptionPlan["tier"]) => void;
@@ -67,7 +68,9 @@ function TierCard({
   popularLabel: string;
   soonLabel: string;
   buttonState?: { enabled: boolean; label?: string; hint?: string };
+  devSwitch?: boolean;
 }) {
+  const router = useRouter();
   const disabled = buttonState && !buttonState.enabled;
   const ctaText = buttonState?.label ?? plan.cta;
   const ctaClass = plan.highlighted
@@ -76,14 +79,63 @@ function TierCard({
       ? "pricing-cta-soon w-full shrink-0"
       : "pricing-cta-outline w-full shrink-0";
 
-  const ctaWrap = "mt-6 shrink-0";
+  const ctaWrap = "mt-4 shrink-0 pointer-events-none";
+
+  const canPurchase =
+    Boolean(onPurchase) &&
+    !disabled &&
+    (plan.tier === "basic" ||
+      plan.tier === "pro" ||
+      plan.tier === "trial" ||
+      (devSwitch && plan.tier === "trial"));
+  const canSelect = Boolean(onSelect) && !disabled;
+
+  function activateCard() {
+    if (plan.comingSoon || disabled) return;
+    if (canPurchase && onPurchase) {
+      onPurchase(plan.tier);
+      return;
+    }
+    if (canSelect && onSelect) {
+      onSelect(plan.tier);
+      return;
+    }
+    if (plan.tier === "trial" && !disabled) {
+      router.push("/login?next=/app");
+      return;
+    }
+    if (plan.ctaHref && !plan.comingSoon) {
+      router.push(plan.ctaHref);
+    }
+  }
+
+  const interactive =
+    !plan.comingSoon &&
+    !disabled &&
+    (canPurchase || canSelect || plan.tier === "trial" || Boolean(plan.ctaHref));
 
   return (
     <article
       id={plan.tier}
       className={`pricing-tier ${accentRing(plan.accent)} ${
         plan.highlighted ? "pricing-tier--popular" : ""
-      } ${plan.comingSoon ? "pricing-tier--soon" : ""}`}
+      } ${plan.comingSoon ? "pricing-tier--soon" : ""} ${
+        interactive ? "pricing-tier--interactive cursor-pointer" : ""
+      }`}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? `${plan.name}: ${ctaText}` : undefined}
+      onClick={interactive ? activateCard : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                activateCard();
+              }
+            }
+          : undefined
+      }
     >
       {plan.highlighted && (
         <span className="pricing-badge pricing-badge--popular">{popularLabel}</span>
@@ -93,15 +145,15 @@ function TierCard({
       )}
 
       <div className="pricing-tier-inner">
-        <p className="label-caps text-accent mb-3">{plan.tagline}</p>
-        <h3 className="text-xl font-bold text-white mt-1 tracking-tight">{plan.name}</h3>
+        <p className="label-caps text-accent mb-2">{plan.tagline}</p>
+        <h3 className="text-lg font-bold text-white mt-0.5 tracking-tight">{plan.name}</h3>
 
-        <div className="mt-5 flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-4xl font-bold text-white tabular-nums">
+        <div className="mt-3 flex items-baseline gap-1 flex-wrap">
+          <span className="pricing-tier-price tabular-nums">
             {plan.priceHeadline ?? plan.priceRubLabel}
           </span>
           {plan.pricePeriod && (
-            <span className="text-sm text-muted font-medium">{plan.pricePeriod}</span>
+            <span className="text-xs text-muted font-medium">{plan.pricePeriod}</span>
           )}
         </div>
         {plan.priceBillingLine && (
@@ -118,11 +170,11 @@ function TierCard({
           </p>
         )}
 
-        <ul className="mt-6 space-y-3 flex-1 min-h-0 pb-1">
+        <ul className="mt-4 space-y-2 flex-1 min-h-0 pb-1">
           {plan.featureItems.map((item) => (
             <li
               key={item.label}
-              className={`flex items-start gap-3 text-sm leading-snug ${
+              className={`flex items-start gap-2 text-xs leading-snug ${
                 item.included ? "text-gray-200" : "text-muted/70"
               }`}
             >
@@ -146,37 +198,11 @@ function TierCard({
               {ctaText}
             </span>
           </div>
-        ) : onPurchase && (plan.tier === "basic" || plan.tier === "pro") ? (
-          <div className={ctaWrap}>
-            <button
-              type="button"
-              onClick={() => onPurchase(plan.tier)}
-              className={ctaClass}
-            >
-              {ctaText}
-            </button>
-          </div>
-        ) : onSelect ? (
-          <div className={ctaWrap}>
-            <button
-              type="button"
-              onClick={() => onSelect(plan.tier)}
-              className={ctaClass}
-            >
-              {ctaText}
-            </button>
-          </div>
-        ) : plan.tier === "trial" ? (
-          <div className={ctaWrap}>
-            <Link href="/login?next=/app" className={`${ctaClass} block text-center`}>
-              {ctaText}
-            </Link>
-          </div>
         ) : (
           <div className={ctaWrap}>
-            <Link href={plan.ctaHref} className={`${ctaClass} block text-center`}>
+            <span className={`${ctaClass} block text-center`} aria-hidden>
               {ctaText}
-            </Link>
+            </span>
           </div>
         )}
       </div>
@@ -191,6 +217,7 @@ export function PricingTierGrid({
   plans: plansOverride,
   pricingUser,
   loggedIn = false,
+  devTester = false,
 }: {
   onPlanSelect?: (tier: SubscriptionPlan["tier"]) => void;
   onPurchase?: (tier: SubscriptionPlan["tier"]) => void;
@@ -198,13 +225,17 @@ export function PricingTierGrid({
   plans?: SubscriptionPlan[];
   pricingUser?: PricingUserState | null;
   loggedIn?: boolean;
+  devTester?: boolean;
 }) {
   const { t, locale } = useLocale();
   const plans = plansOverride ?? localizedPlans(t, locale);
 
   function buttonStateFor(plan: SubscriptionPlan) {
+    if (devTester && (plan.tier === "trial" || plan.tier === "basic" || plan.tier === "pro")) {
+      return { enabled: true };
+    }
     if (plan.tier === "trial") {
-      return trialTierState(loggedIn, pricingUser ?? null);
+      return trialTierState(loggedIn, pricingUser ?? null, devTester);
     }
     if (plan.tier === "basic" || plan.tier === "pro") {
       return paidTierState(plan.tier, pricingUser ?? null);
@@ -213,19 +244,14 @@ export function PricingTierGrid({
   }
 
   return (
-    <div
-      className={
-        compact
-          ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5"
-          : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6"
-      }
-    >
+    <div className={`pricing-tier-grid ${compact ? "pricing-tier-grid--compact" : ""}`}>
       {plans.map((plan) => (
         <TierCard
           key={plan.tier}
           plan={plan}
           onSelect={onPlanSelect}
           onPurchase={onPurchase}
+          devSwitch={devTester}
           popularLabel={t.pricingUi.popular}
           soonLabel={t.pricingUi.comingSoon}
           buttonState={buttonStateFor(plan)}

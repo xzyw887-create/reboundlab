@@ -29,7 +29,7 @@ DEST="${USER}@${HOST}:${PATH_REMOTE}/"
 
 echo "=== Deploy → ${DEST} ==="
 
-rsync -avz \
+rsync -avz --delete \
   -e "$RSYNC_RSH" \
   --exclude node_modules \
   --exclude .git \

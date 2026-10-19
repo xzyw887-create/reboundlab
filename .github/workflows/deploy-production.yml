@@ -46,7 +46,7 @@ jobs:
 
       - name: Rsync to VPS
         run: |
-          rsync -avz \
+          rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
             --exclude node_modules \
             --exclude .git \

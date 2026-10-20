@@ -50,6 +50,22 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
 
+  # Все USDT-M, 1m за 5 лет (или с листинга), затем хвост новых минут.
+  market-sync:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.market-sync
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ../../.env
+    environment:
+      DATABASE_URL: postgresql://reboundlab:${POSTGRES_PASSWORD}@postgres:5432/reboundlab
+      MARKET_DATA_MIN_HISTORY_DAYS: "0"
+      MARKET_HISTORY_DAYS: "1825"
+
   # Одноразовая загрузка свечей: docker compose -f ... --profile seed run --rm market-seed
   market-seed:
     profiles: ["seed"]

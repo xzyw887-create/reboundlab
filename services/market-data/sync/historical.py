@@ -5,9 +5,10 @@ Backfills 1m candles for all active pairs. Chunked, checkpointed, idempotent.
 
 from __future__ import annotations
 
+import shutil
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg2
@@ -39,6 +40,23 @@ CHUNK_SIZE = 1000
 REQUEST_DELAY_SEC = 0.08
 MAX_DEADLOCK_RETRIES = 5
 FRESHNESS = timedelta(hours=3)
+# Оставляем запас, чтобы Postgres и сайт не упёрлись в полный диск.
+MIN_FREE_GB = 8
+
+
+def free_gb() -> float:
+    return shutil.disk_usage("/").free / (1024**3)
+
+
+def window_start(now: datetime, days: int, history_from: date | None) -> datetime:
+    """5 лет назад, либо дата листинга, если монета моложе окна."""
+    start = now - timedelta(days=days)
+    if history_from is None:
+        return start
+    listed = datetime(
+        history_from.year, history_from.month, history_from.day, tzinfo=timezone.utc
+    )
+    return listed if listed > start else start
 
 
 def _commit(conn) -> None:
@@ -50,10 +68,14 @@ def _rollback(conn) -> None:
 
 
 def pair_needs_backfill(
-    conn, pair_id, days: int, now: datetime
+    conn,
+    pair_id,
+    days: int,
+    now: datetime,
+    history_from: date | None = None,
 ) -> tuple[bool, str]:
     """True if pair still needs API fetch. Second value: skip reason or 'needs_data'."""
-    target_start = now - timedelta(days=days)
+    target_start = window_start(now, days, history_from)
     earliest = get_earliest_candle_time(conn, pair_id, TIMEFRAME.value)
     latest = get_latest_candle_time(conn, pair_id, TIMEFRAME.value)
 
@@ -143,9 +165,10 @@ def backfill_pair(
     pair_id,
     symbol: str,
     days: int = 365,
+    history_from: date | None = None,
 ) -> int:
     now = datetime.now(timezone.utc)
-    target_start = now - timedelta(days=days)
+    target_start = window_start(now, days, history_from)
     total_inserted = 0
 
     earliest = get_earliest_candle_time(conn, pair_id, TIMEFRAME.value)
@@ -211,9 +234,22 @@ def backfill_all(
 
             total_pairs = len(pairs)
             skipped = 0
-            for pair_id, symbol in pairs:
+            for pair_id, symbol, history_from in pairs:
+                if free_gb() < MIN_FREE_GB:
+                    print(
+                        f"DISK_LOW free={free_gb():.1f}GB < {MIN_FREE_GB}GB, stop backfill",
+                        flush=True,
+                    )
+                    stats["stopped"] = "disk"
+                    break
                 try:
-                    needs, reason = pair_needs_backfill(conn, pair_id, days, datetime.now(timezone.utc))
+                    needs, reason = pair_needs_backfill(
+                        conn,
+                        pair_id,
+                        days,
+                        datetime.now(timezone.utc),
+                        history_from,
+                    )
                     if not needs:
                         skipped += 1
                         stats["skipped"] += 1
@@ -225,7 +261,13 @@ def backfill_all(
                         continue
 
                     inserted = backfill_pair(
-                        connector, conn, exchange_id, pair_id, symbol, days
+                        connector,
+                        conn,
+                        exchange_id,
+                        pair_id,
+                        symbol,
+                        days,
+                        history_from,
                     )
                     stats["pairs"] += 1
                     stats["candles"] += inserted
@@ -267,3 +309,5 @@ if __name__ == "__main__":
     days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
     result = backfill_all(limit_pairs=limit, days=days)
     print(f"Backfill complete: {result}")
+    if result.get("stopped") == "disk":
+        sys.exit(2)

@@ -41,7 +41,7 @@ def sync_new_candles(config: Config | None = None) -> dict:
             exchange_id = get_exchange_id(conn, "binance")
             pairs = get_active_pairs(conn, "binance")
 
-            for pair_id, symbol in pairs:
+            for pair_id, symbol, _history_from in pairs:
                 try:
                     last_time = get_sync_state(conn, pair_id, TIMEFRAME.value)
                     start_time = (
@@ -66,6 +66,7 @@ def sync_new_candles(config: Config | None = None) -> dict:
                     )
                     stats["pairs"] += 1
                     stats["candles"] += inserted
+                    time.sleep(0.12)
 
                 except Exception as exc:
                     stats["errors"] += 1

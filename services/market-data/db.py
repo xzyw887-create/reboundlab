@@ -260,11 +260,13 @@ def get_candle_count(
         return int(row[0] or 0) if row else 0
 
 
-def get_active_pairs(conn, exchange_code: str) -> list[tuple[uuid.UUID, str]]:
+def get_active_pairs(
+    conn, exchange_code: str
+) -> list[tuple[uuid.UUID, str, date | None]]:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT tp.id, tp.symbol
+            SELECT tp.id, tp.symbol, tp.history_from
             FROM market.trading_pairs tp
             JOIN market.exchanges e ON e.id = tp.exchange_id
             WHERE e.code = %s AND tp.is_active = TRUE

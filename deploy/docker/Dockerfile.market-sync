@@ -1,0 +1,18 @@
+# Фоновая загрузка свечей Binance в Postgres на том же VPS.
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+COPY services/market-data/requirements.txt /tmp/market-data-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/market-data-requirements.txt
+
+COPY packages/exchange-sdk /app/packages/exchange-sdk
+COPY services/market-data /app/services/market-data
+COPY scripts/market-sync-entry.sh /app/scripts/market-sync-entry.sh
+RUN chmod +x /app/scripts/market-sync-entry.sh
+
+ENV PYTHONPATH=/app/packages/exchange-sdk:/app/services/market-data
+ENV MARKET_DATA_MIN_HISTORY_DAYS=0
+ENV MARKET_HISTORY_DAYS=1825
+
+ENTRYPOINT ["bash", "/app/scripts/market-sync-entry.sh"]

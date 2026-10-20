@@ -15,7 +15,7 @@ class Config:
                 "DATABASE_URL",
                 "postgresql://reboundlab:reboundlab@localhost:5432/reboundlab",
             ),
-            min_history_days=int(os.environ.get("MARKET_DATA_MIN_HISTORY_DAYS", "365")),
+            min_history_days=int(os.environ.get("MARKET_DATA_MIN_HISTORY_DAYS", "0")),
             binance_api_url=os.environ.get(
                 "BINANCE_API_URL", "https://fapi.binance.com"
             ),

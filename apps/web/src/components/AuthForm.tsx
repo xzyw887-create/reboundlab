@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/clientFetch";
 import { pathAfterLogin } from "@/lib/postLoginPath";
 import { showDevLocalAuthUi } from "@/lib/devLocalAuthFlags";
 import { showEmailPasswordAuthUi } from "@/lib/emailPasswordAuthFlags";
+import { TELEGRAM_URL } from "@/lib/supportContact";
 
 type AuthMode = "login" | "register";
 
@@ -181,27 +182,22 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
             <p className="text-center text-xs text-muted">{t.auth.orDivider}</p>
           )}
 
-          {!emailUi && (
-            <label className="block space-y-1">
-              <span className="text-xs text-muted">{t.auth.emailLabel}</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.auth.receiptEmailPlaceholder}
-              />
-              <span className="text-[11px] text-muted">{t.auth.receiptEmailHint}</span>
-            </label>
+          <TelegramLoginButton next={next} onError={setError} />
+
+          {emailUi ? (
+            <p className="text-center text-xs text-muted">
+              <Link href="/forgot-password" className="hover:text-accent">
+                {t.auth.forgotPassword}
+              </Link>
+            </p>
+          ) : (
+            <p className="text-center text-xs text-muted leading-snug">
+              {t.auth.botAccessHint}{" "}
+              <a href={TELEGRAM_URL} className="text-accent hover:underline">
+                {t.auth.botAccessLink}
+              </a>
+            </p>
           )}
-
-          <TelegramLoginButton next={next} onError={setError} receiptEmail={email} />
-
-          <p className="text-center text-xs text-muted">
-            <Link href="/forgot-password" className="hover:text-accent">
-              {t.auth.forgotPassword}
-            </Link>
-          </p>
 
           {devLocalUi && (
             <div className="space-y-2 pt-1 border-t border-border/40">

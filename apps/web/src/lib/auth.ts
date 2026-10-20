@@ -14,6 +14,7 @@ import { isFlowPreviewAccount } from "@/lib/flowPreview";
 import {
   isTelegramPlaceholderEmail,
   telegramDisplayNameFromPayload,
+  telegramPlaceholderEmail,
 } from "@/lib/telegramIdentity";
 import {
   ensureTelegramAuthSchema,
@@ -318,10 +319,8 @@ async function insertAwaitingPlan(userId: string): Promise<void> {
 }
 
 export async function loginOrRegisterViaTelegram(
-  payload: TelegramWidgetAuth,
-  receiptEmailRaw?: unknown
+  payload: TelegramWidgetAuth
 ): Promise<{ user: AuthUser; isNew: boolean }> {
-  const receiptEmail = parseReceiptEmail(receiptEmailRaw);
   await ensureTelegramAuthSchema();
 
   const tgId = payload.id;
@@ -336,16 +335,6 @@ export async function loginOrRegisterViaTelegram(
   );
 
   if (existing[0]) {
-    let email = existing[0].email;
-    if (isTelegramPlaceholderEmail(email)) {
-      if (!receiptEmail) throw new ApiError("RECEIPT_EMAIL_REQUIRED");
-      await assertEmailFree(receiptEmail, existing[0].id);
-      await query(`UPDATE core.users SET email = $1, updated_at = NOW() WHERE id = $2`, [
-        receiptEmail,
-        existing[0].id,
-      ]);
-      email = receiptEmail;
-    }
     await query(
       `UPDATE core.users
        SET telegram_username = COALESCE($1, telegram_username),
@@ -355,22 +344,22 @@ export async function loginOrRegisterViaTelegram(
       [username, displayName, existing[0].id]
     );
     await recordTelegramTrialClaim(tgId, existing[0].id);
-    const token = await createSessionToken(existing[0].id, email);
+    const token = await createSessionToken(existing[0].id, existing[0].email);
     setSessionCookie(token);
     const user = await getAuthUser();
     if (!user) throw new ApiError("LOGIN_FAILED");
     return { user, isNew: false };
   }
 
-  if (!receiptEmail) throw new ApiError("RECEIPT_EMAIL_REQUIRED");
-  await assertEmailFree(receiptEmail);
+  const email = telegramPlaceholderEmail(tgId);
+  await assertEmailFree(email);
   await assertTelegramMayClaimTrial(tgId);
 
   const inserted = await query<{ id: string }>(
     `INSERT INTO core.users (email, password_hash, telegram_id, telegram_username, telegram_display_name)
      VALUES ($1, NULL, $2, $3, $4)
      RETURNING id`,
-    [receiptEmail, tgId, username, displayName]
+    [email, tgId, username, displayName]
   );
   const userId = inserted[0]?.id;
   if (!userId) throw new ApiError("REGISTER_FAILED");
@@ -379,7 +368,7 @@ export async function loginOrRegisterViaTelegram(
 
   await recordTelegramTrialClaim(tgId, userId);
 
-  const token = await createSessionToken(userId, receiptEmail);
+  const token = await createSessionToken(userId, email);
   setSessionCookie(token);
 
   const user = await getAuthUser();

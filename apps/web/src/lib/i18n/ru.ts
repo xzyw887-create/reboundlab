@@ -268,6 +268,9 @@ export const ru: Dictionary = {
     telegramSigningIn: "Входим через Telegram…",
     telegramTimeout: "Вход не ответил. Обновите страницу и нажмите кнопку ещё раз.",
     receiptEmailHint: "Для чеков и восстановления пароля. Вход — через Telegram.",
+    botAccessHint:
+      "Чеки и восстановление доступа — в Telegram-боте. После регистрации зайдите туда и нажмите Start.",
+    botAccessLink: "@Btpkod_bot",
     receiptEmailPlaceholder: "you@mail.ru",
     receiptEmailSave: "Сохранить почту",
     devLocalLogin: "Войти локально (без Telegram)",

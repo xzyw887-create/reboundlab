@@ -266,6 +266,9 @@ export const en = {
     telegramSigningIn: "Signing in with Telegram…",
     telegramTimeout: "Sign-in did not respond. Refresh the page and press the button again.",
     receiptEmailHint: "For receipts and password recovery. Sign-in stays on Telegram.",
+    botAccessHint:
+      "Receipts and access recovery are in the Telegram bot. After signing up, open it and press Start.",
+    botAccessLink: "@Btpkod_bot",
     receiptEmailPlaceholder: "you@email.com",
     receiptEmailSave: "Save email",
     devLocalLogin: "Continue locally (no Telegram)",

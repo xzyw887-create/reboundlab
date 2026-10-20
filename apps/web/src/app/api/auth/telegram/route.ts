@@ -46,8 +46,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const payload = parsePayload(body);
-    const receiptEmail =
-      body && typeof body === "object" ? (body as { email?: unknown }).email : undefined;
     if (!payload || !verifyTelegramWidgetAuth(payload)) {
       return NextResponse.json(
         { error: apiMessage(locale, "TELEGRAM_AUTH_INVALID") },
@@ -61,7 +59,7 @@ export async function POST(req: NextRequest) {
       await assertDeviceMayRegister(deviceId);
     }
 
-    const { user, isNew } = await loginOrRegisterViaTelegram(payload, receiptEmail);
+    const { user, isNew } = await loginOrRegisterViaTelegram(payload);
     if (isNew) {
       await linkDeviceToUser(deviceId, user.id);
     }

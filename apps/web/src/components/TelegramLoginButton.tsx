@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/clientFetch";
 import { pathAfterLogin } from "@/lib/postLoginPath";
 import type { TelegramWidgetAuth } from "@/lib/telegramLogin";
 import { useLocale } from "@/lib/i18n";
+import { TELEGRAM_URL } from "@/lib/supportContact";
 
 declare global {
   interface Window {
@@ -28,16 +29,13 @@ function TelegramPlaneIcon() {
 interface Props {
   next: string;
   onError: (message: string | null) => void;
-  receiptEmail?: string;
 }
 
 const localDevBypass = process.env.NODE_ENV === "development";
 
-export function TelegramLoginButton({ next, onError, receiptEmail = "" }: Props) {
+export function TelegramLoginButton({ next, onError }: Props) {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
-  const emailRef = useRef(receiptEmail);
-  emailRef.current = receiptEmail;
   const [loading, setLoading] = useState(false);
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
 
@@ -65,12 +63,16 @@ export function TelegramLoginButton({ next, onError, receiptEmail = "" }: Props)
         const res = await apiFetch("/api/auth/telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...user, email: emailRef.current }),
+          body: JSON.stringify(user),
           signal: AbortSignal.timeout(15_000),
         });
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error || t.auth.errorGeneric);
+        }
+        if (data.isNew) {
+          window.location.href = `${TELEGRAM_URL}?start=confirm`;
+          return;
         }
         window.location.href = pathAfterLogin(data.user, next);
       } catch (e) {

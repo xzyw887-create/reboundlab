@@ -6,7 +6,6 @@ import {
   attachYooPaymentId,
   insertPendingBillingPayment,
 } from "@/lib/billingPayments";
-import { ApiError } from "@/lib/apiErrors";
 import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import {
   yookassaConfigured,
@@ -53,9 +52,7 @@ function attachReceipt(
   amountRub: number
 ): void {
   if (!yookassaSendReceiptEnabled()) return;
-  if (!email.includes("@") || isTelegramPlaceholderEmail(email)) {
-    throw new ApiError("RECEIPT_EMAIL_REQUIRED");
-  }
+  if (!email.includes("@") || isTelegramPlaceholderEmail(email)) return;
   body.receipt = {
     customer: { email },
     items: [
@@ -87,12 +84,6 @@ export async function createYooKassaPayment(
 
   const amountRub = quote.amountRub;
   if (amountRub <= 0) throw new Error("INVALID_TIER");
-  if (
-    yookassaSendReceiptEnabled() &&
-    (!userEmail.includes("@") || isTelegramPlaceholderEmail(userEmail))
-  ) {
-    throw new ApiError("RECEIPT_EMAIL_REQUIRED");
-  }
 
   const localPaymentId = await insertPendingBillingPayment(
     userId,
@@ -237,12 +228,6 @@ export async function createRecurringYooKassaPayment(input: {
   idempotenceKey: string;
 }): Promise<YooPayment> {
   if (!yookassaConfigured()) throw new Error("YOOKASSA_NOT_CONFIGURED");
-  if (
-    yookassaSendReceiptEnabled() &&
-    (!input.userEmail.includes("@") || isTelegramPlaceholderEmail(input.userEmail))
-  ) {
-    throw new ApiError("RECEIPT_EMAIL_REQUIRED");
-  }
 
   const localPaymentId = await insertPendingBillingPayment(
     input.userId,

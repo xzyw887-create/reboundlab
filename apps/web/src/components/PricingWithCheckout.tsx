@@ -17,7 +17,6 @@ import {
   type SubscriptionPlan,
 } from "@/lib/subscriptionTiers";
 import { apiFetch } from "@/lib/clientFetch";
-import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import { formatTpl, useLocale } from "@/lib/i18n";
 
 const PENDING_PAYMENT_KEY = "btp_pending_payment";
@@ -90,8 +89,6 @@ export function PricingWithCheckout() {
   const [success, setSuccess] = useState<string | null>(null);
   const [returnPolling, setReturnPolling] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
-  const [receiptEmail, setReceiptEmail] = useState("");
-  const [receiptBusy, setReceiptBusy] = useState(false);
   const paymentReturnStarted = useRef(false);
   const bindReturnStarted = useRef(false);
 
@@ -228,36 +225,7 @@ export function PricingWithCheckout() {
     if (plan && !plan.comingSoon) setCheckoutPlan(plan);
   }, [authReady, authUser?.flowPreview, searchParams]);
 
-  const needsReceiptEmail = Boolean(
-    authUser?.email && isTelegramPlaceholderEmail(authUser.email)
-  );
-
-  async function saveReceiptEmail(e: React.FormEvent) {
-    e.preventDefault();
-    setReceiptBusy(true);
-    setError(null);
-    try {
-      const res = await apiFetch("/api/auth/receipt-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: receiptEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t.pricingUi.paymentError);
-      setAuthUser(data.user);
-      setReceiptEmail("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.pricingUi.error);
-    } finally {
-      setReceiptBusy(false);
-    }
-  }
-
   async function bindTrialCard() {
-    if (needsReceiptEmail) {
-      setError(t.auth.receiptEmailHint);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -313,10 +281,6 @@ export function PricingWithCheckout() {
 
   async function confirmCheckout() {
     if (!checkoutPlan || !billingMode) return;
-    if (needsReceiptEmail) {
-      setError(t.auth.receiptEmailHint);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -455,25 +419,6 @@ export function PricingWithCheckout() {
         <p className="text-center text-muted text-sm py-10">{t.pricingUi.loading}</p>
       ) : (
         <>
-          {needsReceiptEmail && (
-            <form onSubmit={saveReceiptEmail} className="max-w-md mx-auto mb-6 space-y-2">
-              <label className="block space-y-1">
-                <span className="text-xs text-muted">{t.auth.emailLabel}</span>
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={receiptEmail}
-                  onChange={(e) => setReceiptEmail(e.target.value)}
-                  placeholder={t.auth.receiptEmailPlaceholder}
-                />
-                <span className="text-[11px] text-muted">{t.auth.receiptEmailHint}</span>
-              </label>
-              <button type="submit" className="btn-primary w-full" disabled={receiptBusy}>
-                {receiptBusy ? t.auth.loading : t.auth.receiptEmailSave}
-              </button>
-            </form>
-          )}
           {showBillingToggle && (
             <BillingIntervalSwitch value={billingInterval} onChange={setBillingInterval} />
           )}

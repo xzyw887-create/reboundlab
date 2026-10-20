@@ -73,8 +73,6 @@ export default function AccountPage() {
   const [billingBusy, setBillingBusy] = useState<"cancel" | "unlink" | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [receiptEmail, setReceiptEmail] = useState("");
-  const [receiptBusy, setReceiptBusy] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/auth/me")
@@ -170,48 +168,6 @@ export default function AccountPage() {
             </div>
 
             {user.flowPreview && <DevLocalTesterPanel />}
-
-            {isTelegramPlaceholderEmail(user.email) && (
-              <form
-                className="space-y-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setReceiptBusy(true);
-                  setBillingError(null);
-                  void apiFetch("/api/auth/receipt-email", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: receiptEmail }),
-                  })
-                    .then(async (res) => {
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error || t.auth.errorGeneric);
-                      setUser(data.user);
-                      setReceiptEmail("");
-                    })
-                    .catch((err: unknown) => {
-                      setBillingError(err instanceof Error ? err.message : t.auth.errorGeneric);
-                    })
-                    .finally(() => setReceiptBusy(false));
-                }}
-              >
-                <label className="block space-y-1">
-                  <span className="text-xs text-muted">{t.auth.emailLabel}</span>
-                  <input
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={receiptEmail}
-                    onChange={(e) => setReceiptEmail(e.target.value)}
-                    placeholder={t.auth.receiptEmailPlaceholder}
-                  />
-                  <span className="text-[11px] text-muted">{t.auth.receiptEmailHint}</span>
-                </label>
-                <button type="submit" className="btn-primary w-full" disabled={receiptBusy}>
-                  {receiptBusy ? a.loading : t.auth.receiptEmailSave}
-                </button>
-              </form>
-            )}
 
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-border/40 pb-3">

@@ -67,5 +67,9 @@ export async function fulfillYooKassaPayment(
   }
   await markPaymentSucceeded(yooPaymentId, true);
 
+  void import("@/lib/telegramBot")
+    .then((mod) => mod.sendPaymentReceipt(row.user_id, tier, row.amount_rub))
+    .catch((err) => console.error("[telegram-receipt]", err));
+
   return { activated: true, userId: row.user_id, tier };
 }

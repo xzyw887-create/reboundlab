@@ -64,17 +64,17 @@ export const en = {
       slides: [
         {
           eyebrow: "Chart",
-          title: "Every trade on one chart",
+          title: "Clear visualization",
           body: "Clear visualization",
         },
         {
           eyebrow: "Table",
-          title: "Table of values",
+          title: "Detailed breakdown",
           body: "Detailed breakdown",
         },
         {
           eyebrow: "Result",
-          title: "PnL and the results table",
+          title: "PnL and results summary",
           body: "Result summary",
         },
         {

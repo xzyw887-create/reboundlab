@@ -304,7 +304,6 @@ export function ProductShowcase() {
                     <SlideVisual index={index} m={ps.mocks} demo={demo} dict={t} />
                   </div>
                 </article>
-                <p className="feature-stage-caption">{slide.body}</p>
               </div>
             ))}
           </div>

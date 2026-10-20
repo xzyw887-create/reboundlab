@@ -3,9 +3,10 @@ import { cancelAutopay, enableAutopay, endSubscriptionNow } from "@/lib/autopay"
 import { chargeRubForTier } from "@/lib/billingCharge";
 import type { BillingInterval } from "@/lib/billingInterval";
 import { query } from "@/lib/db";
+import { approveTelegramAppLogin } from "@/lib/telegramAppLogin";
 
 type TgChat = { id?: number; type?: string };
-type TgUser = { id?: number };
+type TgUser = { id?: number; username?: string; first_name?: string; last_name?: string };
 type TgMessage = {
   text?: string;
   chat?: TgChat;
@@ -284,7 +285,49 @@ function commandOf(text: string): string {
   return text.trim().split(/\s+/)[0]?.split("@")[0]?.toLowerCase() ?? "";
 }
 
-async function onCommand(chatId: number, telegramId: number, command: string): Promise<void> {
+async function confirmAppLogin(
+  chatId: number,
+  from: TgUser,
+  payload: string
+): Promise<void> {
+  const token = payload.startsWith("login_") ? payload.slice("login_".length) : "";
+  const telegramId = from.id;
+  if (!telegramId || !token) {
+    await sendTelegramMessage(chatId, "Ссылка входа неполная. Нажмите кнопку на сайте ещё раз.");
+    return;
+  }
+  const result = await approveTelegramAppLogin(token, {
+    id: telegramId,
+    username: from.username,
+    firstName: from.first_name,
+    lastName: from.last_name,
+  });
+  if (result !== "ok") {
+    await sendTelegramMessage(
+      chatId,
+      "Ссылка входа устарела. Вернитесь на сайт и нажмите кнопку ещё раз."
+    );
+    return;
+  }
+  await sendTelegramMessage(
+    chatId,
+    "Вход подтверждён. Вернитесь в браузер — сайт сам продолжит.",
+    mainMenu()
+  );
+}
+
+async function onCommand(
+  chatId: number,
+  from: TgUser,
+  command: string,
+  payload: string
+): Promise<void> {
+  const telegramId = from.id;
+  if (!telegramId) return;
+  if (command === "/start" && payload.startsWith("login_")) {
+    await confirmAppLogin(chatId, from, payload);
+    return;
+  }
   if (command === "/start" || command === "/menu") {
     const account = await loadAccount(telegramId);
     await sendTelegramMessage(
@@ -355,7 +398,8 @@ export async function handleTelegramUpdate(update: TgUpdate): Promise<void> {
   if (message?.chat?.type && message.chat.type !== "private") return;
   const command = commandOf(text);
   if (command.startsWith("/")) {
-    await onCommand(chatId, fromId, command);
+    const payload = text.trim().split(/\s+/).slice(1).join(" ");
+    await onCommand(chatId, message.from ?? { id: fromId }, command, payload);
   }
 }
 

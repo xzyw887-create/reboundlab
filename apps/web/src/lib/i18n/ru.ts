@@ -266,6 +266,7 @@ export const ru: Dictionary = {
     telegramNotConfigured:
       "Кнопка Telegram появится после настройки бота (TELEGRAM_BOT_TOKEN в .env).",
     telegramSigningIn: "Входим через Telegram…",
+    telegramAppWaiting: "Откройте Telegram и подтвердите вход. Эта страница сама продолжится.",
     telegramTimeout: "Вход не ответил. Обновите страницу и нажмите кнопку ещё раз.",
     receiptEmailHint: "Для чеков и восстановления пароля. Вход — через Telegram.",
     botAccessHint: "Подписка, чеки и чат участников — в Telegram-боте.",

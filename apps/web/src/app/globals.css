@@ -613,7 +613,7 @@ body {
   }
 
   .btn-telegram-face {
-    @apply flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-xl text-white font-semibold text-sm select-none pointer-events-none;
+    @apply flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-xl text-white font-semibold text-sm select-none cursor-pointer disabled:opacity-60;
     background: linear-gradient(180deg, #37aee2 0%, #1e96c8 100%);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 4px 14px rgba(30, 150, 200, 0.25);
   }

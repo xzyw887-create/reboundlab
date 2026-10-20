@@ -3,14 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/clientFetch";
 import { pathAfterLogin } from "@/lib/postLoginPath";
-import type { TelegramWidgetAuth } from "@/lib/telegramLogin";
 import { useLocale } from "@/lib/i18n";
-
-declare global {
-  interface Window {
-    onTelegramAuth?: (user: TelegramWidgetAuth) => void;
-  }
-}
 
 function TelegramPlaneIcon() {
   return (
@@ -34,9 +27,17 @@ const localDevBypass = process.env.NODE_ENV === "development";
 
 export function TelegramLoginButton({ next, onError }: Props) {
   const { t } = useLocale();
-  const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [tgUrl, setTgUrl] = useState<string | null>(null);
+  const stopPoll = useRef(false);
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
+
+  useEffect(() => {
+    return () => {
+      stopPoll.current = true;
+    };
+  }, []);
 
   async function signInAsLocalUser() {
     setLoading(true);
@@ -52,49 +53,59 @@ export function TelegramLoginButton({ next, onError }: Props) {
     }
   }
 
-  useEffect(() => {
-    if (!botUsername || !containerRef.current) return;
-
-    window.onTelegramAuth = async (user: TelegramWidgetAuth) => {
-      setLoading(true);
-      onError(null);
-      try {
-        const res = await apiFetch("/api/auth/telegram", {
+  async function startAppLogin() {
+    if (!botUsername) return;
+    setLoading(true);
+    setWaiting(false);
+    onError(null);
+    stopPoll.current = false;
+    try {
+      const res = await apiFetch("/api/auth/telegram/app", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+      const data = await res.json();
+      if (!res.ok || typeof data.tgUrl !== "string" || typeof data.token !== "string") {
+        throw new Error(data.error || t.auth.errorGeneric);
+      }
+      setTgUrl(data.tgUrl);
+      const opener = document.createElement("a");
+      opener.href = data.tgUrl;
+      opener.rel = "noopener";
+      document.body.appendChild(opener);
+      opener.click();
+      opener.remove();
+      setWaiting(true);
+      setLoading(false);
+      const token = data.token as string;
+      const deadline = Date.now() + 3 * 60 * 1000;
+      while (!stopPoll.current && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (stopPoll.current) return;
+        const poll = await apiFetch("/api/auth/telegram/app", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(user),
-          signal: AbortSignal.timeout(15_000),
+          body: JSON.stringify({ token }),
         });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || t.auth.errorGeneric);
+        const status = await poll.json();
+        if (!poll.ok) {
+          throw new Error(status.error || t.auth.errorGeneric);
         }
-        window.location.href = pathAfterLogin(data.user, next);
-      } catch (e) {
-        const timedOut = e instanceof DOMException && e.name === "TimeoutError";
-        onError(timedOut ? t.auth.telegramTimeout : e instanceof Error ? e.message : t.auth.errorGeneric);
-        setLoading(false);
+        if (status.pending) continue;
+        window.location.href = pathAfterLogin(status.user, next);
+        return;
       }
-    };
-
-    const el = containerRef.current;
-    el.innerHTML = "";
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.setAttribute("data-telegram-login", botUsername);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-radius", "12");
-    script.setAttribute("data-userpic", "false");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
-    script.setAttribute("data-request-access", "write");
-    el.appendChild(script);
-
-    return () => {
-      delete window.onTelegramAuth;
-      el.innerHTML = "";
-    };
-  }, [botUsername, next, onError, t.auth.errorGeneric]);
+      if (!stopPoll.current) {
+        setWaiting(false);
+        onError(t.auth.telegramTimeout);
+      }
+    } catch (e) {
+      setWaiting(false);
+      setLoading(false);
+      onError(e instanceof Error ? e.message : t.auth.errorGeneric);
+    }
+  }
 
   if (localDevBypass) {
     return (
@@ -120,17 +131,24 @@ export function TelegramLoginButton({ next, onError }: Props) {
 
   return (
     <div className="space-y-2">
-      <div
-        className={`telegram-widget-host ${loading ? "opacity-60 pointer-events-none" : ""}`}
+      <button
+        type="button"
+        className="btn-telegram-face"
+        onClick={() => void startAppLogin()}
+        disabled={loading || waiting}
       >
-        <div className="btn-telegram-face" aria-hidden>
-          <TelegramPlaneIcon />
-          <span>{t.auth.telegramButton}</span>
-        </div>
-        <div ref={containerRef} className="telegram-widget-overlay" aria-label={t.auth.telegramButton} />
-      </div>
-      {loading && (
-        <p className="text-xs text-muted text-center">{t.auth.telegramSigningIn}</p>
+        <TelegramPlaneIcon />
+        <span>{loading ? t.auth.telegramSigningIn : t.auth.telegramButton}</span>
+      </button>
+      {waiting && (
+        <p className="text-xs text-muted text-center leading-snug">
+          {t.auth.telegramAppWaiting}{" "}
+          {tgUrl && (
+            <a href={tgUrl} className="text-accent hover:underline">
+              {t.auth.telegramButton}
+            </a>
+          )}
+        </p>
       )}
     </div>
   );

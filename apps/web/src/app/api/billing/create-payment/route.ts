@@ -7,6 +7,7 @@ import { quoteCheckoutAmount } from "@/lib/billingCheckoutAmount";
 import { parseBillingInterval } from "@/lib/billingInterval";
 import { confirmPreviewCheckout } from "@/lib/flowPreviewCheckout";
 import { createYooKassaPayment } from "@/lib/yookassaClient";
+import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import { yookassaConfigured } from "@/lib/yookassaConfig";
 
 export async function POST(req: NextRequest) {
@@ -26,6 +27,13 @@ export async function POST(req: NextRequest) {
     if (tier !== "basic" && tier !== "pro") {
       return NextResponse.json(
         { error: apiMessage(locale, "INVALID_TIER") },
+        { status: 400 }
+      );
+    }
+
+    if (isTelegramPlaceholderEmail(user.email)) {
+      return NextResponse.json(
+        { error: apiMessage(locale, "RECEIPT_EMAIL_REQUIRED") },
         { status: 400 }
       );
     }

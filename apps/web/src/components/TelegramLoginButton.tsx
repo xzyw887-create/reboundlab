@@ -28,13 +28,16 @@ function TelegramPlaneIcon() {
 interface Props {
   next: string;
   onError: (message: string | null) => void;
+  receiptEmail?: string;
 }
 
 const localDevBypass = process.env.NODE_ENV === "development";
 
-export function TelegramLoginButton({ next, onError }: Props) {
+export function TelegramLoginButton({ next, onError, receiptEmail = "" }: Props) {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef(receiptEmail);
+  emailRef.current = receiptEmail;
   const [loading, setLoading] = useState(false);
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
 
@@ -62,7 +65,7 @@ export function TelegramLoginButton({ next, onError }: Props) {
         const res = await apiFetch("/api/auth/telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(user),
+          body: JSON.stringify({ ...user, email: emailRef.current }),
           signal: AbortSignal.timeout(15_000),
         });
         const data = await res.json();

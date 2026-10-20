@@ -6,6 +6,8 @@ import {
   attachYooPaymentId,
   insertPendingBillingPayment,
 } from "@/lib/billingPayments";
+import { ApiError } from "@/lib/apiErrors";
+import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import {
   yookassaConfigured,
   yookassaCredentials,
@@ -44,6 +46,31 @@ function authHeader(): string {
   return `Basic ${Buffer.from(`${creds.shopId}:${creds.secret}`).toString("base64")}`;
 }
 
+function attachReceipt(
+  body: Record<string, unknown>,
+  email: string,
+  description: string,
+  amountRub: number
+): void {
+  if (!yookassaSendReceiptEnabled()) return;
+  if (!email.includes("@") || isTelegramPlaceholderEmail(email)) {
+    throw new ApiError("RECEIPT_EMAIL_REQUIRED");
+  }
+  body.receipt = {
+    customer: { email },
+    items: [
+      {
+        description,
+        quantity: "1.00",
+        amount: { value: amountRub.toFixed(2), currency: "RUB" },
+        vat_code: 1,
+        payment_mode: "full_payment",
+        payment_subject: "service",
+      },
+    ],
+  };
+}
+
 function tierLabel(tier: PlanTier): string {
   if (tier === "basic") return "Basic";
   if (tier === "pro") return "Pro";
@@ -60,6 +87,12 @@ export async function createYooKassaPayment(
 
   const amountRub = quote.amountRub;
   if (amountRub <= 0) throw new Error("INVALID_TIER");
+  if (
+    yookassaSendReceiptEnabled() &&
+    (!userEmail.includes("@") || isTelegramPlaceholderEmail(userEmail))
+  ) {
+    throw new ApiError("RECEIPT_EMAIL_REQUIRED");
+  }
 
   const localPaymentId = await insertPendingBillingPayment(
     userId,
@@ -85,21 +118,12 @@ export async function createYooKassaPayment(
     },
   };
 
-  if (yookassaSendReceiptEnabled() && userEmail.includes("@")) {
-    body.receipt = {
-      customer: { email: userEmail },
-      items: [
-        {
-          description: `Подписка ${tierLabel(tier)} BackTest Pro`,
-          quantity: "1.00",
-          amount: { value: amountRub.toFixed(2), currency: "RUB" },
-          vat_code: 1,
-          payment_mode: "full_payment",
-          payment_subject: "service",
-        },
-      ],
-    };
-  }
+  attachReceipt(
+    body,
+    userEmail,
+    `Подписка ${tierLabel(tier)} BackTest Pro`,
+    amountRub
+  );
 
   const res = await yooFetch("https://api.yookassa.ru/v3/payments", {
     method: "POST",
@@ -213,6 +237,12 @@ export async function createRecurringYooKassaPayment(input: {
   idempotenceKey: string;
 }): Promise<YooPayment> {
   if (!yookassaConfigured()) throw new Error("YOOKASSA_NOT_CONFIGURED");
+  if (
+    yookassaSendReceiptEnabled() &&
+    (!input.userEmail.includes("@") || isTelegramPlaceholderEmail(input.userEmail))
+  ) {
+    throw new ApiError("RECEIPT_EMAIL_REQUIRED");
+  }
 
   const localPaymentId = await insertPendingBillingPayment(
     input.userId,
@@ -233,21 +263,12 @@ export async function createRecurringYooKassaPayment(input: {
     },
   };
 
-  if (yookassaSendReceiptEnabled() && input.userEmail.includes("@")) {
-    body.receipt = {
-      customer: { email: input.userEmail },
-      items: [
-        {
-          description: `Подписка ${tierLabel(input.tier)} BackTest Pro`,
-          quantity: "1.00",
-          amount: { value: input.amountRub.toFixed(2), currency: "RUB" },
-          vat_code: 1,
-          payment_mode: "full_payment",
-          payment_subject: "service",
-        },
-      ],
-    };
-  }
+  attachReceipt(
+    body,
+    input.userEmail,
+    `Подписка ${tierLabel(input.tier)} BackTest Pro`,
+    input.amountRub
+  );
 
   const res = await yooFetch("https://api.yookassa.ru/v3/payments", {
     method: "POST",

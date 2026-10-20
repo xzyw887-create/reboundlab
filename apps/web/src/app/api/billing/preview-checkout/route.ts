@@ -4,7 +4,6 @@ import { parseBillingInterval } from "@/lib/billingInterval";
 import {
   clearPreviewSubscription,
   confirmPreviewCheckout,
-  enrollFlowPreview,
 } from "@/lib/flowPreviewCheckout";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +16,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as { action?: string; tier?: string; interval?: string };
   try {
     if (body.action === "enroll") {
-      const ok = await enrollFlowPreview(user.id);
-      if (!ok) {
-        return NextResponse.json({ error: "Уже занято другим аккаунтом" }, { status: 403 });
-      }
+      return NextResponse.json({ error: "Недоступно" }, { status: 404 });
     } else if (!user.flowPreview) {
       return NextResponse.json({ error: "Недоступно" }, { status: 404 });
     } else if (body.action === "clear") {

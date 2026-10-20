@@ -20,6 +20,7 @@ interface AccountUser {
   telegramDisplayName?: string | null;
   planTier: PlanTier;
   trialExpired: boolean;
+  trialStarted?: boolean;
   subscriptionExpired: boolean;
   expiresAt: string | null;
   registeredAt: string;
@@ -72,35 +73,21 @@ export default function AccountPage() {
   const [billingBusy, setBillingBusy] = useState<"cancel" | "unlink" | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [receiptEmail, setReceiptEmail] = useState("");
+  const [receiptBusy, setReceiptBusy] = useState(false);
 
   useEffect(() => {
-    const enroll = new URLSearchParams(window.location.search).get("preview") === "1";
-    const load = () =>
-      apiFetch("/api/auth/me")
-        .then((r) => (r.ok ? r.json() : { user: null }))
-        .then((data) => {
-          if (!data.user) {
-            router.replace("/login?next=/account");
-            return;
-          }
-          setUser(data.user);
-          setLoading(false);
-        })
-        .catch(() => router.replace("/login?next=/account"));
-
-    if (!enroll) {
-      load();
-      return;
-    }
-    apiFetch("/api/billing/preview-checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "enroll" }),
-    })
-      .finally(() => {
-        window.history.replaceState(null, "", "/account");
-        load();
-      });
+    apiFetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : { user: null }))
+      .then((data) => {
+        if (!data.user) {
+          router.replace("/login?next=/account");
+          return;
+        }
+        setUser(data.user);
+        setLoading(false);
+      })
+      .catch(() => router.replace("/login?next=/account"));
   }, [router]);
 
   async function billingAction(action: "cancel" | "unlink"): Promise<boolean> {
@@ -148,13 +135,18 @@ export default function AccountPage() {
   const loginLabel =
     user.telegramId && isTelegramPlaceholderEmail(user.email) ? a.loginMethod : a.email;
 
+  const awaitingPlan =
+    user.planTier === "trial" && user.trialExpired && !user.trialStarted;
+
   const statusLabel = user.subscriptionExpired
     ? a.statusSubscriptionExpired
-    : user.trialExpired
-      ? a.statusTrialExpired
-      : user.planTier === "trial"
-        ? a.statusTrial
-        : a.statusActive;
+    : awaitingPlan
+      ? a.statusNoPlan
+      : user.trialExpired
+        ? a.statusTrialExpired
+        : user.planTier === "trial"
+          ? a.statusTrial
+          : a.statusActive;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -178,6 +170,48 @@ export default function AccountPage() {
             </div>
 
             {user.flowPreview && <DevLocalTesterPanel />}
+
+            {isTelegramPlaceholderEmail(user.email) && (
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setReceiptBusy(true);
+                  setBillingError(null);
+                  void apiFetch("/api/auth/receipt-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: receiptEmail }),
+                  })
+                    .then(async (res) => {
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || t.auth.errorGeneric);
+                      setUser(data.user);
+                      setReceiptEmail("");
+                    })
+                    .catch((err: unknown) => {
+                      setBillingError(err instanceof Error ? err.message : t.auth.errorGeneric);
+                    })
+                    .finally(() => setReceiptBusy(false));
+                }}
+              >
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted">{t.auth.emailLabel}</span>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={receiptEmail}
+                    onChange={(e) => setReceiptEmail(e.target.value)}
+                    placeholder={t.auth.receiptEmailPlaceholder}
+                  />
+                  <span className="text-[11px] text-muted">{t.auth.receiptEmailHint}</span>
+                </label>
+                <button type="submit" className="btn-primary w-full" disabled={receiptBusy}>
+                  {receiptBusy ? a.loading : t.auth.receiptEmailSave}
+                </button>
+              </form>
+            )}
 
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
@@ -210,7 +244,7 @@ export default function AccountPage() {
                   </div>
                 </>
               )}
-              {user.planTier === "trial" && user.expiresAt && (
+              {user.planTier === "trial" && user.expiresAt && !awaitingPlan && (
                 <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
                   <dt className="text-muted">{a.trialUntil}</dt>
                   <dd className={user.trialExpired ? "text-amber-300" : "text-white"}>
@@ -236,7 +270,11 @@ export default function AccountPage() {
             {user.trialExpired || user.subscriptionExpired ? (
               <div className="rounded-xl border border-amber-600/40 bg-amber-950/30 p-4 text-sm text-amber-100 space-y-3">
                 <p>
-                  {user.subscriptionExpired ? a.expiredSubscriptionBody : a.expiredTrialBody}
+                  {user.subscriptionExpired
+                    ? a.expiredSubscriptionBody
+                    : awaitingPlan
+                      ? a.noPlanBody
+                      : a.expiredTrialBody}
                 </p>
                 <Link
                   href="/pricing"

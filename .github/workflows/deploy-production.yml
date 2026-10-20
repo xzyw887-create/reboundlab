@@ -60,7 +60,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "${VPS_USER}@${VPS_HOST}" \
-            "cd ${VPS_DEPLOY_PATH} && set -a && source .env && set +a && docker compose -f deploy/docker/docker-compose.prod.yml up -d --build web"
+            "cd ${VPS_DEPLOY_PATH} && set -a && source .env && set +a && docker compose -f deploy/docker/docker-compose.prod.yml up -d --build web postgres"
 
       - name: Wait for health
         run: |

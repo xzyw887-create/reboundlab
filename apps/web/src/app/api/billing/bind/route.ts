@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { activateBoundMethod } from "@/lib/autopay";
 import { insertPendingPaymentMethod } from "@/lib/autopay";
 import { createYooKassaPaymentMethod } from "@/lib/yookassaClient";
+import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import { checkoutStubAllowed, yookassaBindReturnUrl, yookassaConfigured } from "@/lib/yookassaConfig";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,12 @@ export async function POST(req: NextRequest) {
     const purpose = body.purpose === "keep" ? "keep" : body.purpose === "trial" ? "trial" : null;
     if (!method || !purpose) {
       return NextResponse.json({ error: apiMessage(locale, "INVALID_REQUEST") }, { status: 400 });
+    }
+    if (isTelegramPlaceholderEmail(user.email)) {
+      return NextResponse.json(
+        { error: apiMessage(locale, "RECEIPT_EMAIL_REQUIRED") },
+        { status: 400 }
+      );
     }
     if (purpose === "trial" && user.trialStarted) {
       return NextResponse.json({ error: apiMessage(locale, "TRIAL_ALREADY_CLAIMED") }, { status: 400 });

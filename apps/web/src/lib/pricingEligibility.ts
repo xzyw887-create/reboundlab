@@ -39,9 +39,6 @@ export function trialTierState(
   if (!loggedIn || !user) {
     return { enabled: true };
   }
-  if (!user.trialStarted && !user.paymentMethodBound) {
-    return { enabled: true };
-  }
   if (onActiveTrial(user)) {
     return {
       enabled: false,
@@ -56,7 +53,7 @@ export function trialTierState(
       hint: "На платном тарифе пробный период не подключается",
     };
   }
-  if (user.trialExpired) {
+  if (user.trialExpired && user.trialStarted) {
     return {
       enabled: false,
       label: "Пробный период завершён",

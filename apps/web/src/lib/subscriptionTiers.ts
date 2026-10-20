@@ -63,7 +63,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     tier: "trial",
     dbTier: "trial",
     name: "Пробный",
-    tagline: "Без карты",
+    tagline: "С картой",
     priceRub: 0,
     priceRubLabel: "0 ₽",
     priceUsdLabel: "Free",

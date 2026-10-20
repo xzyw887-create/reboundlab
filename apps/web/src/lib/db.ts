@@ -19,7 +19,7 @@ export function getPool(): Pool {
   if (!global.pgPool) {
     global.pgPool = new Pool({
       connectionString: DATABASE_URL,
-      max: Number(process.env.DATABASE_POOL_SIZE ?? 10),
+      max: Number(process.env.DATABASE_POOL_SIZE ?? 20),
       ssl: isLocalDb ? false : { rejectUnauthorized: false },
     });
   }

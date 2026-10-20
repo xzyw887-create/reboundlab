@@ -21,18 +21,6 @@ async function latestSubscriptionId(userId: string): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
-/** Первый зашедший по ссылке становится аккаунтом для прохода оплаты. */
-export async function enrollFlowPreview(userId: string): Promise<boolean> {
-  await ensureBillingSchema();
-  const others = await query<{ id: string }>(
-    `SELECT id FROM core.users WHERE flow_preview = TRUE AND id <> $1 LIMIT 1`,
-    [userId]
-  );
-  if (others[0]) return false;
-  await query(`UPDATE core.users SET flow_preview = TRUE WHERE id = $1`, [userId]);
-  return true;
-}
-
 /** Снять тариф и карту: дальше сайт ведёт на выбор оплаты. */
 export async function clearPreviewSubscription(userId: string): Promise<void> {
   await ensureBillingSchema();

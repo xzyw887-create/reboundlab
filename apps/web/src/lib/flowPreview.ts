@@ -10,7 +10,6 @@ export function isFlowPreviewAccount(user: {
   telegramUsername?: string | null;
   flowPreviewFlag?: boolean;
 }): boolean {
-  if (user.flowPreviewFlag) return true;
   if (isDevLocalTesterAccount(user.email)) return true;
   const name = (user.telegramUsername || "").replace(/^@/, "").toLowerCase();
   if (name && ADMIN_PREVIEW_USERNAMES.includes(name)) return true;

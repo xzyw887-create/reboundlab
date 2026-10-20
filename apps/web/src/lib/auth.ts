@@ -12,8 +12,8 @@ import { chargeDueForUser } from "@/lib/chargeDue";
 import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
 import { isFlowPreviewAccount } from "@/lib/flowPreview";
 import {
+  isTelegramPlaceholderEmail,
   telegramDisplayNameFromPayload,
-  telegramPlaceholderEmail,
 } from "@/lib/telegramIdentity";
 import {
   ensureTelegramAuthSchema,
@@ -22,7 +22,6 @@ import {
 import {
   assertTelegramMayClaimTrial,
   recordTelegramTrialClaim,
-  trialExpiresIntervalSql,
 } from "@/lib/trialPolicy";
 
 const COOKIE_NAME = "btp_session";
@@ -192,7 +191,7 @@ export async function getAuthUser(opts?: { renew?: boolean }): Promise<AuthUser 
     subscriptionExpired,
     billingAnchorDay: row.billing_anchor_day,
     trialStarted: row.trial_started,
-    paymentMethodBound: Boolean(method) || (!trialExpired && !subscriptionExpired),
+    paymentMethodBound: Boolean(method),
     paymentMethodTitle: method?.title ?? null,
     autopayEnabled: row.autopay_enabled,
     flowPreview: isFlowPreviewAccount({
@@ -233,12 +232,7 @@ export async function registerUser(
   const userId = users[0]?.id;
   if (!userId) throw new ApiError("REGISTER_FAILED");
 
-  await query(
-    `INSERT INTO core.subscriptions (user_id, plan_id, status, expires_at)
-     SELECT $1, p.id, 'trial', ${trialExpiresIntervalSql()}
-     FROM core.plans p WHERE p.tier = 'trial'`,
-    [userId]
-  );
+  await insertAwaitingPlan(userId);
 
   const token = await createSessionToken(userId, normalized);
   setSessionCookie(token);
@@ -275,9 +269,55 @@ export async function loginUser(
   return user;
 }
 
+/** Почта для чека ЮKassa и письма со сбросом пароля. Пустая строка — null. */
+export function parseReceiptEmail(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const email = canonicalEmail(raw);
+  const domain = email.slice(email.lastIndexOf("@") + 1);
+  if (!email.includes("@") || domain.length < 3 || !domain.includes(".")) {
+    throw new ApiError("INVALID_EMAIL");
+  }
+  if (isTelegramPlaceholderEmail(email) || domain === "telegram.local") {
+    throw new ApiError("INVALID_EMAIL");
+  }
+  if (isDisposableEmail(email)) throw new ApiError("DISPOSABLE_EMAIL");
+  return email;
+}
+
+async function assertEmailFree(email: string, exceptUserId?: string): Promise<void> {
+  const rows = await query<{ id: string }>(
+    `SELECT id FROM core.users WHERE email = $1 LIMIT 1`,
+    [email]
+  );
+  const row = rows[0];
+  if (row && row.id !== exceptUserId) throw new ApiError("EMAIL_ALREADY_REGISTERED");
+}
+
+export async function setReceiptEmail(userId: string, raw: unknown): Promise<void> {
+  const email = parseReceiptEmail(raw);
+  if (!email) throw new ApiError("RECEIPT_EMAIL_REQUIRED");
+  await assertEmailFree(email, userId);
+  await query(`UPDATE core.users SET email = $1, updated_at = NOW() WHERE id = $2`, [
+    email,
+    userId,
+  ]);
+}
+
+/** Нет живого периода, пока человек сам не привяжет карту или не оплатит тариф. */
+async function insertAwaitingPlan(userId: string): Promise<void> {
+  await query(
+    `INSERT INTO core.subscriptions (user_id, plan_id, status, expires_at, trial_started)
+     SELECT $1, p.id, 'trial', NOW() - INTERVAL '1 minute', FALSE
+     FROM core.plans p WHERE p.tier = 'trial'`,
+    [userId]
+  );
+}
+
 export async function loginOrRegisterViaTelegram(
-  payload: TelegramWidgetAuth
+  payload: TelegramWidgetAuth,
+  receiptEmailRaw?: unknown
 ): Promise<{ user: AuthUser; isNew: boolean }> {
+  const receiptEmail = parseReceiptEmail(receiptEmailRaw);
   await ensureTelegramAuthSchema();
 
   const tgId = payload.id;
@@ -292,6 +332,16 @@ export async function loginOrRegisterViaTelegram(
   );
 
   if (existing[0]) {
+    let email = existing[0].email;
+    if (isTelegramPlaceholderEmail(email)) {
+      if (!receiptEmail) throw new ApiError("RECEIPT_EMAIL_REQUIRED");
+      await assertEmailFree(receiptEmail, existing[0].id);
+      await query(`UPDATE core.users SET email = $1, updated_at = NOW() WHERE id = $2`, [
+        receiptEmail,
+        existing[0].id,
+      ]);
+      email = receiptEmail;
+    }
     await query(
       `UPDATE core.users
        SET telegram_username = COALESCE($1, telegram_username),
@@ -301,35 +351,31 @@ export async function loginOrRegisterViaTelegram(
       [username, displayName, existing[0].id]
     );
     await recordTelegramTrialClaim(tgId, existing[0].id);
-    const token = await createSessionToken(existing[0].id, existing[0].email);
+    const token = await createSessionToken(existing[0].id, email);
     setSessionCookie(token);
     const user = await getAuthUser();
     if (!user) throw new ApiError("LOGIN_FAILED");
     return { user, isNew: false };
   }
 
+  if (!receiptEmail) throw new ApiError("RECEIPT_EMAIL_REQUIRED");
+  await assertEmailFree(receiptEmail);
   await assertTelegramMayClaimTrial(tgId);
 
-  const email = telegramPlaceholderEmail(tgId);
   const inserted = await query<{ id: string }>(
     `INSERT INTO core.users (email, password_hash, telegram_id, telegram_username, telegram_display_name)
      VALUES ($1, NULL, $2, $3, $4)
      RETURNING id`,
-    [email, tgId, username, displayName]
+    [receiptEmail, tgId, username, displayName]
   );
   const userId = inserted[0]?.id;
   if (!userId) throw new ApiError("REGISTER_FAILED");
 
-  await query(
-    `INSERT INTO core.subscriptions (user_id, plan_id, status, expires_at)
-     SELECT $1, p.id, 'trial', ${trialExpiresIntervalSql()}
-     FROM core.plans p WHERE p.tier = 'trial'`,
-    [userId]
-  );
+  await insertAwaitingPlan(userId);
 
   await recordTelegramTrialClaim(tgId, userId);
 
-  const token = await createSessionToken(userId, email);
+  const token = await createSessionToken(userId, receiptEmail);
   setSessionCookie(token);
 
   const user = await getAuthUser();

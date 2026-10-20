@@ -32,6 +32,7 @@ export type ApiErrorCode =
   | "TELEGRAM_AUTH_INVALID"
   | "TELEGRAM_NOT_CONFIGURED"
   | "LOGIN_USE_TELEGRAM"
+  | "RECEIPT_EMAIL_REQUIRED"
   | "EMAIL_AUTH_DISABLED"
   | "TRIAL_ALREADY_CLAIMED"
   | "REGISTER_GENERIC"
@@ -183,6 +184,10 @@ const MSGS: Record<ApiErrorCode, Record<ApiLocale, string>> = {
   LOGIN_USE_TELEGRAM: {
     ru: "Этот аккаунт привязан к Telegram — войдите через кнопку Telegram",
     en: "This account uses Telegram — sign in with the Telegram button",
+  },
+  RECEIPT_EMAIL_REQUIRED: {
+    ru: "Укажите почту — она нужна для чека и восстановления пароля",
+    en: "Enter an email for receipts and password recovery",
   },
   EMAIL_AUTH_DISABLED: {
     ru: "Вход только через Telegram — откройте страницу входа и нажмите кнопку Telegram",

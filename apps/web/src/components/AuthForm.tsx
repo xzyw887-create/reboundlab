@@ -181,7 +181,27 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
             <p className="text-center text-xs text-muted">{t.auth.orDivider}</p>
           )}
 
-          <TelegramLoginButton next={next} onError={setError} />
+          {!emailUi && (
+            <label className="block space-y-1">
+              <span className="text-xs text-muted">{t.auth.emailLabel}</span>
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t.auth.receiptEmailPlaceholder}
+              />
+              <span className="text-[11px] text-muted">{t.auth.receiptEmailHint}</span>
+            </label>
+          )}
+
+          <TelegramLoginButton next={next} onError={setError} receiptEmail={email} />
+
+          <p className="text-center text-xs text-muted">
+            <Link href="/forgot-password" className="hover:text-accent">
+              {t.auth.forgotPassword}
+            </Link>
+          </p>
 
           {devLocalUi && (
             <div className="space-y-2 pt-1 border-t border-border/40">

@@ -17,14 +17,6 @@ export async function ensureBillingSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS last_charge_at TIMESTAMPTZ
   `);
   await query(`
-    UPDATE core.subscriptions
-    SET trial_started = TRUE
-    WHERE trial_started = FALSE
-      AND status = 'trial'
-      AND expires_at IS NOT NULL
-      AND expires_at < NOW()
-  `);
-  await query(`
     CREATE TABLE IF NOT EXISTS core.saved_payment_methods (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES core.users(id) ON DELETE CASCADE,
@@ -43,6 +35,12 @@ export async function ensureBillingSchema(): Promise<void> {
   await query(`
     ALTER TABLE core.users
     ADD COLUMN IF NOT EXISTS flow_preview BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+  await query(`
+    UPDATE core.users
+    SET flow_preview = FALSE
+    WHERE flow_preview = TRUE
+      AND COALESCE(lower(regexp_replace(telegram_username, '^@', '')), '') <> 'wasya_8'
   `);
   ensured = true;
 }

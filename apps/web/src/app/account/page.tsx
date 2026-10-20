@@ -12,6 +12,7 @@ import { formatTpl, useLocale } from "@/lib/i18n";
 import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
 import { DevLocalTesterPanel } from "@/components/DevLocalTesterPanel";
 import { userAccountLoginLabel } from "@/lib/userDisplayName";
+import { TELEGRAM_URL } from "@/lib/supportContact";
 
 interface AccountUser {
   email: string;
@@ -252,6 +253,13 @@ export default function AccountPage() {
                 </Link>
               </div>
             )}
+
+            <p className="text-xs text-muted leading-snug">
+              {a.botLink}{" "}
+              <a href={TELEGRAM_URL} className="text-accent hover:underline">
+                {a.botLinkLabel}
+              </a>
+            </p>
           </div>
         </div>
       </main>

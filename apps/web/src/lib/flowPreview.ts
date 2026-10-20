@@ -1,9 +1,6 @@
 import { isDevLocalTesterAccount } from "@/lib/devLocalAuth";
 
-/** Админский аккаунт для прохода оплаты без кабинета банка. */
-const ADMIN_PREVIEW_USERNAMES = ["wasya_8"];
-
-/** Аккаунт, которому «Оформить» включает тариф и карту без ЮKassa. */
+/** Аккаунт, которому «Оформить» включает тариф и карту без ЮKassa. Только localhost-тестер и явный env-список. */
 export function isFlowPreviewAccount(user: {
   email?: string | null;
   telegramId?: number | null;
@@ -12,7 +9,6 @@ export function isFlowPreviewAccount(user: {
 }): boolean {
   if (isDevLocalTesterAccount(user.email)) return true;
   const name = (user.telegramUsername || "").replace(/^@/, "").toLowerCase();
-  if (name && ADMIN_PREVIEW_USERNAMES.includes(name)) return true;
 
   const raw = process.env["BILLING_FLOW_PREVIEW_TELEGRAM"]?.trim();
   if (!raw) return false;

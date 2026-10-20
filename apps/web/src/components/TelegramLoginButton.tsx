@@ -5,7 +5,6 @@ import { apiFetch } from "@/lib/clientFetch";
 import { pathAfterLogin } from "@/lib/postLoginPath";
 import type { TelegramWidgetAuth } from "@/lib/telegramLogin";
 import { useLocale } from "@/lib/i18n";
-import { TELEGRAM_URL } from "@/lib/supportContact";
 
 declare global {
   interface Window {
@@ -69,10 +68,6 @@ export function TelegramLoginButton({ next, onError }: Props) {
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error || t.auth.errorGeneric);
-        }
-        if (data.isNew) {
-          window.location.href = `${TELEGRAM_URL}?start=confirm`;
-          return;
         }
         window.location.href = pathAfterLogin(data.user, next);
       } catch (e) {

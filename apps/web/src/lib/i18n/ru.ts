@@ -268,8 +268,7 @@ export const ru: Dictionary = {
     telegramSigningIn: "Входим через Telegram…",
     telegramTimeout: "Вход не ответил. Обновите страницу и нажмите кнопку ещё раз.",
     receiptEmailHint: "Для чеков и восстановления пароля. Вход — через Telegram.",
-    botAccessHint:
-      "Чеки и восстановление доступа — в Telegram-боте. После регистрации зайдите туда и нажмите Start.",
+    botAccessHint: "Подписка, чеки и чат участников — в Telegram-боте.",
     botAccessLink: "@Btpkod_bot",
     receiptEmailPlaceholder: "you@mail.ru",
     receiptEmailSave: "Сохранить почту",
@@ -302,10 +301,12 @@ export const ru: Dictionary = {
     expiredTrialBody:
       "Пробный период закончился. Чтобы продолжить прогоны, выберите тариф Basic или Pro.",
     noPlanBody:
-      "Выберите пробные сутки с картой или оплатите Базовый / Про. Через сутки после привязки, если подписку не отменить, спишется 490 ₽.",
+      "Выберите пробные сутки с картой или оплатите Базовый / Про. Через сутки после привязки, если подписку не отменить, спишется 1 ₽.",
     choosePlan: "Выбрать тариф",
     viewAllPlans: "Смотреть все тарифы",
     openTerminal: "Терминал",
+    botLink: "Подписка, чеки и чат участников — в боте",
+    botLinkLabel: "@Btpkod_bot",
     paymentMethod: "Способ оплаты",
     noPaymentMethod: "Не привязан",
     autopay: "Автопродление",

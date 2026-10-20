@@ -62,11 +62,23 @@ jobs:
             "${VPS_USER}@${VPS_HOST}" \
             "bash ${VPS_DEPLOY_PATH}/scripts/caddy-tcp-only.sh"
 
+      - name: Clear one-time billing overrides
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" \
+            "bash ${VPS_DEPLOY_PATH}/scripts/once-reset-tester.sh ${VPS_DEPLOY_PATH} env"
+
       - name: Rebuild web container
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "${VPS_USER}@${VPS_HOST}" \
             "cd ${VPS_DEPLOY_PATH} && set -a && source .env && set +a && docker compose -f deploy/docker/docker-compose.prod.yml up -d --build web postgres"
+
+      - name: Remove admin tester account once
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" \
+            "bash ${VPS_DEPLOY_PATH}/scripts/once-reset-tester.sh ${VPS_DEPLOY_PATH} user"
 
       - name: Wait for health
         run: |

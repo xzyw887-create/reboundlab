@@ -40,7 +40,11 @@ export async function ensureBillingSchema(): Promise<void> {
     UPDATE core.users
     SET flow_preview = FALSE
     WHERE flow_preview = TRUE
-      AND COALESCE(lower(regexp_replace(telegram_username, '^@', '')), '') <> 'wasya_8'
+  `);
+  await query(`
+    UPDATE core.plans
+    SET price_rub = 1
+    WHERE tier IN ('starter', 'pro', 'automatic')
   `);
   ensured = true;
 }

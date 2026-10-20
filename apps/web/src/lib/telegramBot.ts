@@ -1,11 +1,8 @@
 import { createHash } from "crypto";
-import { createPasswordResetToken, passwordResetUrl } from "@/lib/auth";
 import { cancelAutopay, enableAutopay, endSubscriptionNow } from "@/lib/autopay";
 import { chargeRubForTier } from "@/lib/billingCharge";
 import type { BillingInterval } from "@/lib/billingInterval";
 import { query } from "@/lib/db";
-import { isTelegramPlaceholderEmail } from "@/lib/telegramIdentity";
-import { TELEGRAM_URL } from "@/lib/supportContact";
 
 type TgChat = { id?: number; type?: string };
 type TgUser = { id?: number };
@@ -30,14 +27,20 @@ type Markup = { inline_keyboard: Array<Array<{ text: string; callback_data?: str
 
 type AccountRow = {
   id: string;
-  email: string;
-  password_hash: string | null;
   tier: string;
   expires_at: Date | null;
   autopay_enabled: boolean;
   autopay_interval: string | null;
   has_card: boolean;
 };
+
+function siteBase(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL || "https://backtestpro.ru").replace(/\/$/, "");
+}
+
+function terminalUrl(): string {
+  return `${siteBase()}/app`;
+}
 
 function botToken(): string | null {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -50,7 +53,7 @@ export function telegramWebhookSecret(token: string): string {
 
 function communityChatUrl(): string {
   const fromEnv =
-    process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || process.env.TELEGRAM_COMMUNITY_URL?.trim();
+    process.env.TELEGRAM_COMMUNITY_URL?.trim() || process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim();
   return fromEnv || "https://t.me/backtestpro_help";
 }
 
@@ -108,8 +111,8 @@ function mainMenu(): Markup {
   return {
     inline_keyboard: [
       [{ text: "Подписка", callback_data: "sub" }],
-      [{ text: "Восстановить пароль", callback_data: "reset" }],
-      [{ text: "Чат участников", url: communityChatUrl() }],
+      [{ text: "Терминал", url: terminalUrl() }],
+      [{ text: "BackTestPro|Help", url: communityChatUrl() }],
     ],
   };
 }
@@ -128,7 +131,7 @@ function formatWhen(value: Date | null): string {
 
 async function loadAccount(telegramId: number): Promise<AccountRow | null> {
   const rows = await query<AccountRow>(
-    `SELECT u.id, u.email, u.password_hash, p.tier, s.expires_at, s.autopay_enabled,
+    `SELECT u.id, p.tier, s.expires_at, s.autopay_enabled,
             s.autopay_interval,
             EXISTS (
               SELECT 1 FROM core.saved_payment_methods m
@@ -170,31 +173,6 @@ function subscriptionMenu(account: AccountRow): Markup {
   }
   rows.push([{ text: "Назад", callback_data: "menu" }]);
   return { inline_keyboard: rows };
-}
-
-async function replyReset(chatId: number, telegramId: number, messageId?: number): Promise<void> {
-  const account = await loadAccount(telegramId);
-  const back: Markup = { inline_keyboard: [[{ text: "Назад", callback_data: "menu" }]] };
-  if (!account || !account.password_hash || isTelegramPlaceholderEmail(account.email)) {
-    await showScreen(
-      chatId,
-      messageId,
-      "Отдельный пароль не используется. Вход на сайт — кнопкой Telegram.",
-      back
-    );
-    return;
-  }
-  const token = await createPasswordResetToken(account.email);
-  if (!token) {
-    await showScreen(chatId, messageId, "Не удалось подготовить ссылку. Нажмите ещё раз.", back);
-    return;
-  }
-  await showScreen(
-    chatId,
-    messageId,
-    `Ссылка для нового пароля, действует один час:\n${passwordResetUrl(token)}`,
-    back
-  );
 }
 
 async function openSubscription(chatId: number, telegramId: number, messageId?: number): Promise<void> {
@@ -293,12 +271,11 @@ export async function ensureTelegramWebhook(): Promise<void> {
     commands: [
       { command: "start", description: "Меню" },
       { command: "subscription", description: "Подписка и продление" },
-      { command: "reset", description: "Восстановить пароль" },
-      { command: "chat", description: "Чат участников" },
+      { command: "chat", description: "BackTestPro|Help" },
     ],
   });
   await telegramApi("setMyShortDescription", {
-    short_description: "Подписка, пароль и чат BackTest Pro",
+    short_description: "Подписка, чеки и чат BackTest Pro",
   });
   g.__btpTelegramWebhook = true;
 }
@@ -313,7 +290,7 @@ async function onCommand(chatId: number, telegramId: number, command: string): P
     await sendTelegramMessage(
       chatId,
       account
-        ? "Аккаунт подтверждён. Чеки об оплате приходят сюда. Подписка, пароль и чат — в кнопках ниже."
+        ? "Чеки об оплате приходят сюда. Подписка, терминал и чат — в кнопках ниже."
         : "Сначала войдите на backtestpro.ru кнопкой Telegram, затем снова нажмите Start.",
       mainMenu()
     );
@@ -323,12 +300,8 @@ async function onCommand(chatId: number, telegramId: number, command: string): P
     await openSubscription(chatId, telegramId);
     return;
   }
-  if (command === "/reset") {
-    await replyReset(chatId, telegramId);
-    return;
-  }
   if (command === "/chat") {
-    await sendTelegramMessage(chatId, `Чат участников:\n${communityChatUrl()}`, mainMenu());
+    await sendTelegramMessage(chatId, `Чат участников BackTestPro|Help:\n${communityChatUrl()}`, mainMenu());
   }
 }
 
@@ -347,10 +320,6 @@ async function onCallback(callback: TgCallback): Promise<void> {
   }
   if (data === "sub") {
     await openSubscription(chatId, telegramId, messageId);
-    return;
-  }
-  if (data === "reset") {
-    await replyReset(chatId, telegramId, messageId);
     return;
   }
   if (data === "renew_off") {
@@ -405,6 +374,6 @@ export async function sendPaymentReceipt(
   const rub = new Intl.NumberFormat("ru-RU").format(amountRub);
   await sendTelegramMessage(
     Number(telegramId),
-    `Чек BackTest Pro\nТариф: ${plan}\nСумма: ${rub} ₽\nОплата прошла. Меню бота: подписка, пароль, чат. Если кнопки не видно, откройте ${TELEGRAM_URL} и нажмите Start.`
+    `Чек BackTest Pro\nТариф: ${plan}\nСумма: ${rub} ₽\nОплата прошла.`
   );
 }

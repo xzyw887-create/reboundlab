@@ -44,9 +44,9 @@ export function trialDurationShort(locale: PolicyLocale, days = TRIAL_DURATION_D
 export function termsPricingTrialLine(locale: PolicyLocale): string {
   const days = TRIAL_DURATION_DAYS;
   if (locale === "ru") {
-    return `Пробный период — ${ruCalendarDays(days)} после привязки карты (тариф «Пробный»). Если подписку не отменить, на следующий день списывается тариф «Базовый» — 490 ₽ в месяц.`;
+    return `Пробный период — ${ruCalendarDays(days)} после привязки карты (тариф «Пробный»). Если подписку не отменить, на следующий день списывается тариф «Базовый» — 1 ₽ в месяц.`;
   }
-  return `Trial period — ${enCalendarDays(days)} after the card is linked (Trial plan). If the subscription is not cancelled, Basic is charged the next day at 490 ₽ per month.`;
+  return `Trial period — ${enCalendarDays(days)} after the card is linked (Trial plan). If the subscription is not cancelled, Basic is charged the next day at 1 ₽ per month.`;
 }
 
 function historyFromRegistration(locale: PolicyLocale, days: number): string {
@@ -96,24 +96,24 @@ export function trialCopy(locale: PolicyLocale): TrialCopyBundle {
   if (locale === "ru") {
     return {
       ctaTrial: `Пробные сутки с картой`,
-      trialNote: `${d} после привязки карты · затем 490 ₽`,
-      pricingLeadTrialPart: `Вход через Telegram, затем выбор тарифа. ${d} после привязки карты, на следующий день — 490 ₽, если подписку не отменить.`,
-      subscriptionFlowText: `Telegram → выбор тарифа → карта. ${d} бесплатно, затем 490 ₽ в месяц, либо сразу Базовый или Про.`,
+      trialNote: `${d} после привязки карты · затем 1 ₽`,
+      pricingLeadTrialPart: `Вход через Telegram, затем выбор тарифа. ${d} после привязки карты, на следующий день — 1 ₽, если подписку не отменить.`,
+      subscriptionFlowText: `Telegram → выбор тарифа → карта. ${d} бесплатно, затем 1 ₽ в месяц, либо сразу Базовый или Про.`,
       stepRegisterText: `Вход через Telegram, затем выбор тарифа и карта`,
       guestRunBlocked: `Войдите через Telegram и выберите тариф, чтобы запускать бэктесты.`,
       registerSubtitle: `Почта для чеков. Вход — через Telegram. Тариф выбирается после входа.`,
       signupCta: `Войти через Telegram`,
-      trialFaqA: `Сутки открываются после привязки карты. Если подписку не отменить, на следующий день списывается Базовый — 490 ₽ в месяц.`,
-      howTrialStepText: `Вход через Telegram, привязка карты — ${d}, затем 490 ₽, если не отменить.`,
+      trialFaqA: `Сутки открываются после привязки карты. Если подписку не отменить, на следующий день списывается Базовый — 1 ₽ в месяц.`,
+      howTrialStepText: `Вход через Telegram, привязка карты — ${d}, затем 1 ₽, если не отменить.`,
       pricingSubtitle: `Сутки с картой или сразу Базовый / Про`,
-      pricingFaqTrialA: `${d} после привязки карты, затем 490 ₽ в месяц, если не отменить.`,
-      faqTrialDurationA: `${d} после привязки карты. Затем 490 ₽ в месяц, если подписку не отменить.`,
-      helpTrialBillingTopic: `${d} после привязки карты. Если не отменить, на следующий день — 490 ₽.`,
+      pricingFaqTrialA: `${d} после привязки карты, затем 1 ₽ в месяц, если не отменить.`,
+      faqTrialDurationA: `${d} после привязки карты. Затем 1 ₽ в месяц, если подписку не отменить.`,
+      helpTrialBillingTopic: `${d} после привязки карты. Если не отменить, на следующий день — 1 ₽.`,
       telegramTrialHint: `Войдите через Telegram и выберите тариф`,
       metaDescriptionTrial: `Professional crypto strategy backtesting. ${dEn} free trial. Basic & Pro plans.`,
       plansTrial: {
         pricePeriod: d,
-        priceNote: `${d} после привязки карты, затем 490 ₽ / мес`,
+        priceNote: `${d} после привязки карты, затем 1 ₽ / мес`,
         trialAccessFeature: `${d} после привязки карты`,
         historyFeature: historyTrial,
       },
@@ -122,26 +122,26 @@ export function trialCopy(locale: PolicyLocale): TrialCopyBundle {
 
   return {
     ctaTrial: `1-day trial with a card`,
-    trialNote: `${d} after the card is linked · then 490 ₽`,
+    trialNote: `${d} after the card is linked · then 1 ₽`,
     pricingLeadTrialPart:
-      `Sign in with Telegram, then pick a plan. ${d} after the card is linked; 490 ₽ the next day if you do not cancel.`,
+      `Sign in with Telegram, then pick a plan. ${d} after the card is linked; 1 ₽ the next day if you do not cancel.`,
     subscriptionFlowText:
-      `Telegram → pick a plan → card. ${d} free, then 490 ₽ per month, or pay for Basic or Pro now.`,
+      `Telegram → pick a plan → card. ${d} free, then 1 ₽ per month, or pay for Basic or Pro now.`,
     stepRegisterText: `Telegram sign-in, then a plan and a card`,
     guestRunBlocked: `Sign in with Telegram and choose a plan to run backtests.`,
     registerSubtitle: `Email for receipts. Sign-in is Telegram. You choose a plan after that.`,
     signupCta: `Continue with Telegram`,
-    trialFaqA: `The day starts after the card is linked. If you do not cancel, Basic is charged the next day — 490 ₽ per month.`,
-    howTrialStepText: `Telegram sign-in and a linked card — ${d}, then 490 ₽ unless you cancel.`,
+    trialFaqA: `The day starts after the card is linked. If you do not cancel, Basic is charged the next day — 1 ₽ per month.`,
+    howTrialStepText: `Telegram sign-in and a linked card — ${d}, then 1 ₽ unless you cancel.`,
     pricingSubtitle: `1 day with a card, or Basic / Pro right away`,
-    pricingFaqTrialA: `${d} after the card is linked, then 490 ₽ per month unless you cancel.`,
-    faqTrialDurationA: `${d} after the card is linked. Then 490 ₽ per month unless you cancel.`,
-    helpTrialBillingTopic: `${d} after the card is linked. 490 ₽ the next day if you do not cancel.`,
+    pricingFaqTrialA: `${d} after the card is linked, then 1 ₽ per month unless you cancel.`,
+    faqTrialDurationA: `${d} after the card is linked. Then 1 ₽ per month unless you cancel.`,
+    helpTrialBillingTopic: `${d} after the card is linked. 1 ₽ the next day if you do not cancel.`,
     telegramTrialHint: `Sign in with Telegram and choose a plan`,
     metaDescriptionTrial: `Professional crypto strategy backtesting. ${d} free trial. Basic & Pro plans.`,
     plansTrial: {
       pricePeriod: d,
-      priceNote: `${d} after the card is linked, then 490 ₽ / mo`,
+      priceNote: `${d} after the card is linked, then 1 ₽ / mo`,
       trialAccessFeature: `${d} after the card is linked`,
       historyFeature: historyTrial,
     },

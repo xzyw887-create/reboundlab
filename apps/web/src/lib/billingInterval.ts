@@ -18,7 +18,8 @@ export function annualChargeRubFromCatalogMonthly(monthlyCatalogRub: number): nu
 export function displayMonthlyRub(monthlyCatalogRub: number, interval: BillingInterval): number {
   if (monthlyCatalogRub <= 0) return 0;
   if (interval === "year") {
-    return Math.round((monthlyCatalogRub * ANNUAL_MONTHLY_DISCOUNT) / 10) * 10;
+    const discounted = Math.round((monthlyCatalogRub * ANNUAL_MONTHLY_DISCOUNT) / 10) * 10;
+    return discounted >= 1 ? discounted : monthlyCatalogRub;
   }
   return monthlyCatalogRub;
 }

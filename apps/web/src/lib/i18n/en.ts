@@ -266,8 +266,7 @@ export const en = {
     telegramSigningIn: "Signing in with Telegram…",
     telegramTimeout: "Sign-in did not respond. Refresh the page and press the button again.",
     receiptEmailHint: "For receipts and password recovery. Sign-in stays on Telegram.",
-    botAccessHint:
-      "Receipts and access recovery are in the Telegram bot. After signing up, open it and press Start.",
+    botAccessHint: "Subscription, receipts, and the member chat are in the Telegram bot.",
     botAccessLink: "@Btpkod_bot",
     receiptEmailPlaceholder: "you@email.com",
     receiptEmailSave: "Save email",
@@ -300,10 +299,12 @@ export const en = {
     expiredTrialBody:
       "Your trial ended. Choose Basic or Pro to keep running backtests.",
     noPlanBody:
-      "Choose a 1-day trial with a card, or pay for Basic / Pro. If you do not cancel, 490 ₽ is charged the next day.",
+      "Choose a 1-day trial with a card, or pay for Basic / Pro. If you do not cancel, 1 ₽ is charged the next day.",
     choosePlan: "Choose a plan",
     viewAllPlans: "View all plans",
     openTerminal: "Open terminal",
+    botLink: "Subscription, receipts, and the member chat are in the bot",
+    botLinkLabel: "@Btpkod_bot",
     paymentMethod: "Payment method",
     noPaymentMethod: "Not linked",
     autopay: "Auto-renewal",

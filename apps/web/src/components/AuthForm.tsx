@@ -11,7 +11,6 @@ import { apiFetch } from "@/lib/clientFetch";
 import { pathAfterLogin } from "@/lib/postLoginPath";
 import { showDevLocalAuthUi } from "@/lib/devLocalAuthFlags";
 import { showEmailPasswordAuthUi } from "@/lib/emailPasswordAuthFlags";
-import { TELEGRAM_URL } from "@/lib/supportContact";
 
 type AuthMode = "login" | "register";
 
@@ -184,18 +183,11 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
 
           <TelegramLoginButton next={next} onError={setError} />
 
-          {emailUi ? (
+          {emailUi && (
             <p className="text-center text-xs text-muted">
               <Link href="/forgot-password" className="hover:text-accent">
                 {t.auth.forgotPassword}
               </Link>
-            </p>
-          ) : (
-            <p className="text-center text-xs text-muted leading-snug">
-              {t.auth.botAccessHint}{" "}
-              <a href={TELEGRAM_URL} className="text-accent hover:underline">
-                {t.auth.botAccessLink}
-              </a>
             </p>
           )}
 

@@ -52,6 +52,11 @@ if ! command -v caddy >/dev/null 2>&1; then
   apt-get update -qq && apt-get install -y caddy
 fi
 cat >/etc/caddy/Caddyfile <<EOF
+{
+	servers {
+		protocols h1 h2
+	}
+}
 ${DOMAIN}, www.${DOMAIN} {
     reverse_proxy 127.0.0.1:8080
 }

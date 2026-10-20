@@ -47,6 +47,11 @@ DOMAIN="${DOMAIN#http://}"
 DOMAIN="${DOMAIN%%/*}"
 
 cat >/etc/caddy/Caddyfile <<EOF
+{
+	servers {
+		protocols h1 h2
+	}
+}
 ${DOMAIN}, www.${DOMAIN} {
     reverse_proxy 127.0.0.1:8080
 }

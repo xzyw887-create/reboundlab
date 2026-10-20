@@ -613,11 +613,11 @@ export const ru: Dictionary = {
       ],
     },
     basic: {
-      name: "Basic",
+      name: "Базовый",
       tagline: "Классика",
       pricePeriod: "₽ / мес",
       priceNote: "Оплата картой (скоро)",
-      cta: "Выбрать Basic",
+      cta: "Выбрать Базовый",
       features: [
         "Одиночный · одна монета",
         "Свечи до 3 лет",
@@ -631,11 +631,11 @@ export const ru: Dictionary = {
       ],
     },
     pro: {
-      name: "Pro",
+      name: "Про",
       tagline: "Полная стратегия",
       pricePeriod: "₽ / мес",
       priceNote: "Оплата картой (скоро)",
-      cta: "Выбрать Pro",
+      cta: "Выбрать Про",
       features: [
         "Мульти · до 10 монет одновременно",
         "Кросс-маржа: один банк на все монеты",
@@ -648,7 +648,7 @@ export const ru: Dictionary = {
       ],
     },
     automatic: {
-      name: "Automatic",
+      name: "Автоматический",
       tagline: "Автоподбор",
       pricePeriod: "₽ / мес",
       priceNote: "Скоро · ожидаемая цена",

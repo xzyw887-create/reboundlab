@@ -142,7 +142,6 @@ function TierCard({
       )}
 
       <div className="pricing-tier-inner">
-        <p className="label-caps text-accent mb-2">{plan.tagline}</p>
         <h3 className="text-lg font-bold text-white mt-0.5 tracking-tight">{plan.name}</h3>
 
         <div className="mt-3 flex items-baseline gap-1 flex-wrap">
@@ -153,14 +152,6 @@ function TierCard({
             <span className="text-xs text-muted font-medium">{plan.pricePeriod}</span>
           )}
         </div>
-        {plan.priceBillingLine && (
-          <p className="text-xs text-amber-400/85 mt-1.5 leading-relaxed">
-            {plan.priceBillingLine}
-          </p>
-        )}
-        {plan.priceNote && (
-          <p className="text-xs text-muted mt-2 leading-relaxed">{plan.priceNote}</p>
-        )}
         {plan.cardBlurb && (
           <p className="text-xs text-gray-300/90 mt-3 leading-relaxed border border-amber-500/20 bg-amber-950/20 rounded-lg px-3 py-2.5">
             {plan.cardBlurb}

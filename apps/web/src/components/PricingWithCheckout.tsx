@@ -102,9 +102,6 @@ export function PricingWithCheckout() {
         ...plan,
         priceHeadline: formatRubAmount(monthly).replace(" ₽", ""),
         pricePeriod: showYear ? "₽ / мес · оплата за год" : plan.pricePeriod,
-        priceNote: showYear
-          ? "При подключении списывается сумма за 12 месяцев со скидкой"
-          : plan.priceNote,
       };
     });
   }

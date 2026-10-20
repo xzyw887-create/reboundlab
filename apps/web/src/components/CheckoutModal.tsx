@@ -95,8 +95,11 @@ export function CheckoutModal({
   const interval = checkoutQuote?.interval ?? "month";
   const isUpgrade = checkoutQuote?.isUpgrade ?? false;
   const catalogMonthly = planByTier(plan.tier)?.priceRub ?? 0;
-  const annualCharge =
-    catalogMonthly > 0 ? annualChargeRubFromCatalogMonthly(catalogMonthly) : 0;
+  const annualCharge = testCharge
+    ? chargeRubForTier(plan.tier === "pro" ? "pro" : "basic")
+    : catalogMonthly > 0
+      ? annualChargeRubFromCatalogMonthly(catalogMonthly)
+      : 0;
   const proMonthly = chargeRubForTier("pro");
   const nextCharge =
     plan.tier === "trial"

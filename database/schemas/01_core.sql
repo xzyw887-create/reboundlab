@@ -45,6 +45,6 @@ CREATE INDEX idx_subscriptions_status ON core.subscriptions(status);
 -- Seed default plans
 INSERT INTO core.plans (tier, name, features, price_rub, trial_runs) VALUES
 ('trial', 'Пробный', '{"max_coins":1,"max_days":90,"trial_days":1,"trailing":false,"averaging":0,"multi_coin":false,"compare_runs":false,"automatic":false,"entry_pct_split":false}', 0, 0),
-('starter', 'Базовый', '{"max_coins":1,"max_days":1095,"trailing":false,"averaging":0,"multi_coin":false,"compare_runs":true,"automatic":false,"entry_pct_split":false}', 1, 0),
-('pro', 'Продвинутый', '{"max_coins":10,"max_days":1095,"trailing":true,"averaging":3,"multi_coin":true,"compare_runs":true,"automatic":false,"entry_pct_split":true}', 1, 0),
-('automatic', 'Автомат', '{"max_coins":50,"max_days":1095,"trailing":true,"averaging":3,"multi_coin":true,"compare_runs":true,"automatic":true,"entry_pct_split":true}', 1, 0);
+('starter', 'Базовый', '{"max_coins":1,"max_days":1095,"trailing":false,"averaging":0,"multi_coin":false,"compare_runs":true,"automatic":false,"entry_pct_split":false}', 490, 0),
+('pro', 'Продвинутый', '{"max_coins":10,"max_days":1095,"trailing":true,"averaging":3,"multi_coin":true,"compare_runs":true,"automatic":false,"entry_pct_split":true}', 1990, 0),
+('automatic', 'Автомат', '{"max_coins":50,"max_days":1095,"trailing":true,"averaging":3,"multi_coin":true,"compare_runs":true,"automatic":true,"entry_pct_split":true}', 4990, 0);

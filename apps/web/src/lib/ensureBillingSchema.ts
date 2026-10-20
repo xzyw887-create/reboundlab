@@ -43,7 +43,12 @@ export async function ensureBillingSchema(): Promise<void> {
   `);
   await query(`
     UPDATE core.plans
-    SET price_rub = 1
+    SET price_rub = CASE tier
+      WHEN 'starter' THEN 490
+      WHEN 'pro' THEN 1990
+      WHEN 'automatic' THEN 4990
+      ELSE price_rub
+    END
     WHERE tier IN ('starter', 'pro', 'automatic')
   `);
   ensured = true;

@@ -299,7 +299,7 @@ export const en = {
     expiredTrialBody:
       "Your trial ended. Choose Basic or Pro to keep running backtests.",
     noPlanBody:
-      "Choose a 1-day trial with a card, or pay for Basic / Pro. If you do not cancel, 1 ₽ is charged the next day.",
+      "Choose a 1-day trial with a card, or pay for Basic / Pro. If you do not cancel, 490 ₽ is charged the next day.",
     choosePlan: "Choose a plan",
     viewAllPlans: "View all plans",
     openTerminal: "Open terminal",

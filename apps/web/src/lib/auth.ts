@@ -152,6 +152,10 @@ export async function getAuthUser(opts?: { renew?: boolean }): Promise<AuthUser 
   const row = rows[0];
   if (!row) return null;
 
+  void import("@/lib/billingScheduler")
+    .then((mod) => mod.startBillingScheduler())
+    .catch((err) => console.error("[autopay]", err));
+
   if (
     opts?.renew !== false &&
     row.autopay_enabled &&

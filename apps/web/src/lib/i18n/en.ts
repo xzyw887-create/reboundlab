@@ -320,6 +320,8 @@ export const en = {
     cancelConfirmKeep: "Keep subscription",
     cancelConfirmYes: "Yes, cancel",
     unlinkCard: "Remove card",
+    unlinkHint:
+      "The card disappears from the account immediately. Further charges stop. You do not need to contact support.",
     loading: "Loading…",
     stubBillingNote:
       "Checkout stub: billing period follows calendar renewal (first payment day → same day next month). Card payments after YooKassa.",

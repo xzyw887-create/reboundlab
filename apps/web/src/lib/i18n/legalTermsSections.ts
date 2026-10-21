@@ -58,7 +58,7 @@ const ru: TermsPageCopy = {
       items: [
         termsPricingTrialLine("ru"),
         "Платные тарифы Basic и Pro — подписка на срок, указанный при оплате. Оплата и чек (кассовый чек самозанятого / документ платёжной системы) — через подключённого агрегатора (например, ЮKassa), когда оплата доступна на сайте.",
-        "Автопродление — если включено при оплате и указано в интерфейсе; пользователь может отменить продление способом, указанным в аккаунте или через поддержку.",
+        "Автоплатежи: при оплате тарифа или привязке карты способ оплаты сохраняется. В конце оплаченного периода списывается стоимость выбранного тарифа. Отключить повторные списания можно в любой момент в личном кабинете https://backtestpro.ru/account кнопкой «Отвязать карту» или «Отменить подписку». Сохранённый способ оплаты сразу перестаёт использоваться и пропадает из кабинета. Запрос в поддержку или в ЮKassa для отвязки не нужен.",
         "Возврат средств — в случаях и порядке, предусмотренных законом о защите прав потребителей и правилами платёжного сервиса; цифровая услуга, фактически оказанная в пробном или оплаченном периоде, может ограничивать основания для возврата — уточняйте в обращении в поддержку.",
       ],
     },
@@ -159,7 +159,7 @@ const en: TermsPageCopy = {
       items: [
         termsPricingTrialLine("en"),
         "Paid Basic and Pro — subscription for the term shown at checkout; receipts via the payment provider (e.g. YooKassa) when enabled.",
-        "Auto-renewal — only if offered at checkout and described in the UI.",
+        "Recurring charges: paying for a plan or linking a card saves the payment method. At the end of the paid period the selected plan price is charged again. You can stop this at any time at https://backtestpro.ru/account with “Remove card” or “Cancel subscription”. The saved method is no longer used and disappears from the account. No request to support or YooKassa is required.",
         "Refunds — where required by consumer law and payment provider rules; contact support for case-by-case review.",
       ],
     },

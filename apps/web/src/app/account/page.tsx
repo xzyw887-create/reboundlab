@@ -211,6 +211,26 @@ export default function AccountPage() {
               )}
             </dl>
 
+            {user.paymentMethodBound && (
+              <div className="rounded-xl border border-border/70 bg-black/20 p-4 space-y-3">
+                <div className="flex justify-between gap-4">
+                  <span className="text-sm text-muted">{a.paymentMethod}</span>
+                  <span className="text-sm text-white text-right">
+                    {user.paymentMethodTitle || a.paymentMethod}
+                  </span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">{a.unlinkHint}</p>
+                <button
+                  type="button"
+                  className="text-sm text-white underline-offset-2 hover:underline text-left disabled:opacity-60"
+                  disabled={billingBusy !== null}
+                  onClick={() => void billingAction("unlink")}
+                >
+                  {billingBusy === "unlink" ? "…" : a.unlinkCard}
+                </button>
+              </div>
+            )}
+
             {billingError && <p className="text-sm text-red-300">{billingError}</p>}
 
             {!user.trialExpired && !user.subscriptionExpired && (

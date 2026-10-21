@@ -291,7 +291,9 @@ export async function claimDueCharge(userId: string): Promise<DueCharge | null> 
      FROM core.subscriptions s
      JOIN core.users u ON u.id = s.user_id
      JOIN core.saved_payment_methods pm
-       ON pm.user_id = s.user_id AND pm.status = 'active'
+       ON pm.user_id = s.user_id
+      AND pm.status = 'active'
+      AND pm.yookassa_method_id NOT LIKE 'local-screenshot-%'
      WHERE s.id = $1
      ORDER BY pm.created_at DESC
      LIMIT 1`,

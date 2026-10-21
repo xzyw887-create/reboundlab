@@ -4,8 +4,9 @@
 set -euo pipefail
 
 MARKER=/var/lib/reboundlab-unlink-screenshot-card
-if [ -f "$MARKER" ]; then
-  echo "unlink screenshot card already placed"
+RESTORED=/var/lib/reboundlab-unlink-screenshot-card-restored
+if [ -f "$RESTORED" ]; then
+  echo "unlink screenshot card already restored"
   exit 0
 fi
 
@@ -36,4 +37,5 @@ if [ "$count" != "1" ]; then
 fi
 
 touch "$MARKER"
+touch "$RESTORED"
 echo "screenshot card visible for wasya_8"

@@ -29,11 +29,7 @@ async function ensureLoginChallenges(): Promise<void> {
   `);
 }
 
-export async function startTelegramAppLogin(): Promise<{
-  token: string;
-  tgUrl: string;
-  httpsUrl: string;
-}> {
+export async function startTelegramAppLogin(): Promise<{ token: string; tgUrl: string }> {
   await ensureLoginChallenges();
   const token = randomBytes(16).toString("hex");
   await query(
@@ -42,11 +38,9 @@ export async function startTelegramAppLogin(): Promise<{
     [token]
   );
   const start = `login_${token}`;
-  const name = botUsername();
   return {
     token,
-    tgUrl: `tg://resolve?domain=${name}&start=${start}`,
-    httpsUrl: `https://t.me/${name}?start=${start}`,
+    tgUrl: `tg://resolve?domain=${botUsername()}&start=${start}`,
   };
 }
 

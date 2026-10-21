@@ -264,9 +264,7 @@ export const en = {
     telegramNotConfigured:
       "Telegram button will appear after TELEGRAM_BOT_TOKEN is set in .env.",
     telegramSigningIn: "Signing in with Telegram…",
-    telegramAppWaiting:
-      "Open the bot with the button below. When it says sign-in is confirmed, come back here — this page continues on its own.",
-    telegramOpen: "Open Telegram",
+    telegramAppWaiting: "Open Telegram and confirm sign-in. This page continues on its own.",
     telegramTimeout: "Sign-in did not respond. Refresh the page and press the button again.",
     receiptEmailHint: "For receipts and password recovery. Sign-in stays on Telegram.",
     botAccessHint: "Subscription, receipts, and the member chat are in the Telegram bot.",

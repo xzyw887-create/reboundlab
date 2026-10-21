@@ -66,20 +66,18 @@ export function TelegramLoginButton({ next, onError }: Props) {
         body: JSON.stringify({ action: "start" }),
       });
       const data = await res.json();
-      if (!res.ok || typeof data.tgUrl !== "string" || typeof data.token !== "string") {
+      if (!res.ok || typeof data.token !== "string") {
         throw new Error(data.error || t.auth.errorGeneric);
       }
-      setTgUrl(data.tgUrl);
-      const opener = document.createElement("a");
-      opener.href = data.tgUrl;
-      opener.rel = "noopener";
-      document.body.appendChild(opener);
-      opener.click();
-      opener.remove();
+      const httpsUrl =
+        typeof data.httpsUrl === "string"
+          ? data.httpsUrl
+          : `https://t.me/${botUsername}?start=login_${data.token}`;
+      setTgUrl(httpsUrl);
       setWaiting(true);
       setLoading(false);
       const token = data.token as string;
-      const deadline = Date.now() + 3 * 60 * 1000;
+      const deadline = Date.now() + 5 * 60 * 1000;
       while (!stopPoll.current && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
         if (stopPoll.current) return;
@@ -140,15 +138,14 @@ export function TelegramLoginButton({ next, onError }: Props) {
         <TelegramPlaneIcon />
         <span>{loading ? t.auth.telegramSigningIn : t.auth.telegramButton}</span>
       </button>
-      {waiting && (
-        <p className="text-xs text-muted text-center leading-snug">
-          {t.auth.telegramAppWaiting}{" "}
-          {tgUrl && (
-            <a href={tgUrl} className="text-accent hover:underline">
-              {t.auth.telegramButton}
-            </a>
-          )}
-        </p>
+      {waiting && tgUrl && (
+        <div className="space-y-2">
+          <a href={tgUrl} target="_blank" rel="noopener noreferrer" className="btn-telegram-face">
+            <TelegramPlaneIcon />
+            <span>{t.auth.telegramOpen}</span>
+          </a>
+          <p className="text-xs text-muted text-center leading-snug">{t.auth.telegramAppWaiting}</p>
+        </div>
       )}
     </div>
   );

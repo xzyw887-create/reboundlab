@@ -44,10 +44,10 @@ const ru: TermsPageCopy = {
     {
       heading: "4. Регистрация и аккаунт",
       items: [
-        "вход осуществляется через Telegram Login; один аккаунт привязан к идентификатору Telegram;",
+        "вход осуществляется через Telegram Login или по email и паролю; аккаунт Telegram привязан к идентификатору Telegram;",
         "пользователь обязан не передавать доступ к аккаунту третьим лицам в нарушение тарифа;",
         "исполнитель вправе ограничить или прекратить доступ при нарушении оферты, злоупотреблениях или требованиях закона;",
-        "вход по email и паролю на сайте не предоставляется.",
+        "пароль email-аккаунта хранится только в виде хеша.",
       ],
     },
     {
@@ -147,10 +147,10 @@ const en: TermsPageCopy = {
     {
       heading: "4. Account",
       items: [
-        "sign-in via Telegram Login; one account per Telegram id;",
+        "sign-in via Telegram Login or with email and password; a Telegram account is tied to one Telegram id;",
         "do not share access in violation of plan terms;",
         "we may suspend access for abuse or legal compliance;",
-        "email/password sign-in is not offered on the site.",
+        "an email-account password is stored only as a hash.",
       ],
     },
     {

@@ -39,7 +39,7 @@ const ru: PrivacyPageCopy = {
       paragraphs: ["Обрабатываем данные зарегистрированных пользователей и посетителей сайта:"],
       items: [
         "идентификатор Telegram, имя и @username (если переданы виджетом Telegram Login);",
-        "внутренний идентификатор аккаунта, служебный технический адрес в системе (не используется для входа по email);",
+        "внутренний идентификатор аккаунта; для входа по email — адрес почты и хеш пароля; для входа через Telegram — служебный технический адрес;",
         "тариф, статус и срок подписки, история оплат (при подключении платёжной системы — без хранения полных данных банковской карты на наших серверах);",
         "параметры и сохранённые результаты бэктестов — если вы вошли в аккаунт и сохраняете прогоны;",
         "технические данные: IP-адрес, тип браузера и устройства, cookie сессии, журналы ошибок и безопасности.",
@@ -85,7 +85,7 @@ const ru: PrivacyPageCopy = {
     {
       heading: "8. Меры защиты персональных данных",
       paragraphs: [
-        "Применяются организационные и технические меры: ограничение доступа к базе данных, шифрование каналов (HTTPS), хранение паролей не актуально для входа через Telegram; сессии защищены httpOnly-cookie. Уровень защиты информационной системы определяется исходя из актуальных угроз и требований постановления Правительства РФ № 1119 (для ИСПДн).",
+        "Применяются организационные и технические меры: ограничение доступа к базе данных, шифрование каналов (HTTPS), пароли email-аккаунтов хранятся только в виде хеша; сессии защищены httpOnly-cookie. Уровень защиты информационной системы определяется исходя из актуальных угроз и требований постановления Правительства РФ № 1119 (для ИСПДн).",
       ],
     },
     {
@@ -139,7 +139,7 @@ const en: PrivacyPageCopy = {
       heading: "3. Data we process",
       items: [
         "Telegram Login: user id, display name, @username (when shared with the widget);",
-        "internal account id and a technical placeholder identifier (email/password sign-in is not offered);",
+        "internal account id; for email sign-in, the address and a password hash; for Telegram sign-in, a technical placeholder identifier;",
         "plan, subscription status and term, payment records (no full card data on our servers);",
         "backtest parameters and saved runs when you are signed in;",
         "technical data: IP, browser/device type, session cookies, security and error logs.",

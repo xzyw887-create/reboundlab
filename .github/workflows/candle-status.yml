@@ -1,8 +1,12 @@
-# Ручная проверка загрузки свечей. Сайт и загрузчик не пересобирает.
+# Проверка загрузки свечей. Сайт и загрузчик не пересобирает.
+# Раз в час: обычная загрузка — зелёная. Остановка, диск, ошибка или конец истории — красная,
+# чтобы это было видно, даже если ноутбук закрыт.
 name: Candle sync status
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "15 * * * *"
 
 jobs:
   status:
@@ -30,14 +34,16 @@ jobs:
 
       - name: Read loader status
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
-            "${VPS_USER}@${VPS_HOST}" 'bash -s' << 'REMOTE'
+          set -o pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            "${VPS_USER}@${VPS_HOST}" 'bash -s' << 'REMOTE' | tee /tmp/candle-status.txt
           set -u
           name=$(docker ps -a --format "{{.Names}}" | grep market-sync | head -1)
           if [ -z "$name" ]; then
             echo "STATE=missing"
             exit 0
           fi
+          status=$(docker inspect -f "{{.State.Status}}" "$name")
           echo "CONTAINER=$name"
           docker inspect -f "STATUS={{.State.Status}} STARTED={{.State.StartedAt}} RESTARTS={{.RestartCount}}" "$name"
           df -h / | awk "NR==2{print \"DISK_USED=\"\$3, \"DISK_FREE=\"\$4, \"DISK_PCT=\"\$5}"
@@ -48,5 +54,48 @@ jobs:
             docker exec "$cid" psql -U reboundlab -d reboundlab -tA -c "SELECT 'ERRORS_6H=' || COUNT(*) FROM market.sync_logs WHERE level = 'ERROR' AND created_at > NOW() - INTERVAL '6 hours';"
           fi
           echo "---LOG---"
-          docker logs --tail 20 "$name" 2>&1
+          log=$(docker logs --tail 40 "$name" 2>&1 || true)
+          printf '%s\n' "$log"
+          if [ "$status" != "running" ]; then
+            echo "STATE=stopped"
+          elif printf '%s\n' "$log" | grep -q "history loaded, live tail"; then
+            echo "STATE=complete"
+          elif printf '%s\n' "$log" | grep -q "DISK_LOW"; then
+            echo "STATE=disk_low"
+          elif printf '%s\n' "$log" | grep -q "\[ERROR\]"; then
+            echo "STATE=error"
+          else
+            echo "STATE=loading"
+          fi
           REMOTE
+          state=$(sed -n 's/^STATE=//p' /tmp/candle-status.txt | tail -1)
+          echo "Detected state: ${state:-unknown}"
+          case "$state" in
+            loading)
+              echo "Ordinary load, no alert."
+              ;;
+            disk_low)
+              echo "::error::Загрузка свечей встала: на диске мало места."
+              exit 1
+              ;;
+            stopped)
+              echo "::error::Загрузчик свечей остановлен."
+              exit 1
+              ;;
+            error)
+              echo "::error::Загрузка свечей остановилась с ошибкой."
+              exit 1
+              ;;
+            complete)
+              echo "::error::История за 3 года догружена, идёт только хвост новых минут."
+              exit 1
+              ;;
+            missing)
+              echo "::error::Контейнер загрузки свечей не найден."
+              exit 1
+              ;;
+            *)
+              echo "::error::Не удалось прочитать состояние загрузки свечей."
+              exit 1
+              ;;
+          esac

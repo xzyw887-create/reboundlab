@@ -1,0 +1,52 @@
+# Ручная проверка загрузки свечей. Сайт и загрузчик не пересобирает.
+name: Candle sync status
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST || '5.63.152.44' }}
+      VPS_USER: ${{ vars.VPS_USER || 'root' }}
+    steps:
+      - name: Require SSH key secret
+        run: |
+          if [ -z "${{ secrets.VPS_SSH_PRIVATE_KEY }}" ]; then
+            echo "::error::Add repository secret VPS_SSH_PRIVATE_KEY"
+            exit 1
+          fi
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Read loader status
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" 'bash -s' << 'REMOTE'
+          set -u
+          name=$(docker ps -a --format "{{.Names}}" | grep market-sync | head -1)
+          if [ -z "$name" ]; then
+            echo "STATE=missing"
+            exit 0
+          fi
+          echo "CONTAINER=$name"
+          docker inspect -f "STATUS={{.State.Status}} STARTED={{.State.StartedAt}} RESTARTS={{.RestartCount}}" "$name"
+          df -h / | awk "NR==2{print \"DISK_USED=\"\$3, \"DISK_FREE=\"\$4, \"DISK_PCT=\"\$5}"
+          cid=$(docker ps -qf name=postgres | head -1)
+          if [ -n "$cid" ]; then
+            docker exec "$cid" psql -U reboundlab -d reboundlab -tA -c "SELECT 'PAIRS=' || COUNT(*) FROM market.trading_pairs tp JOIN market.exchanges e ON e.id = tp.exchange_id WHERE e.code = 'binance' AND tp.is_active;"
+            docker exec "$cid" psql -U reboundlab -d reboundlab -tA -c "SELECT 'CHECKPOINTS_DONE=' || COUNT(*) FROM market.load_checkpoints WHERE timeframe = '1m' AND status = 'completed';"
+            docker exec "$cid" psql -U reboundlab -d reboundlab -tA -c "SELECT 'ERRORS_6H=' || COUNT(*) FROM market.sync_logs WHERE level = 'ERROR' AND created_at > NOW() - INTERVAL '6 hours';"
+          fi
+          echo "---LOG---"
+          docker logs --tail 20 "$name" 2>&1
+          REMOTE

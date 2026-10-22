@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Каталог всех USDT-M пар, история 1m (5 лет или с листинга), затем дописывание новых минут.
+# Каталог всех USDT-M пар, история 1m (3 года или с листинга), затем дописывание новых минут.
 set -uo pipefail
 
 cd /app
 export PYTHONPATH="/app/packages/exchange-sdk:/app/services/market-data${PYTHONPATH:+:$PYTHONPATH}"
 export MARKET_DATA_MIN_HISTORY_DAYS="${MARKET_DATA_MIN_HISTORY_DAYS:-0}"
-DAYS="${MARKET_HISTORY_DAYS:-1825}"
+DAYS="${MARKET_HISTORY_DAYS:-1095}"
 
 echo "market-sync start days=$DAYS min_history=$MARKET_DATA_MIN_HISTORY_DAYS $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 

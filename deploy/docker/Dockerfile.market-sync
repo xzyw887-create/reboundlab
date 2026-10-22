@@ -13,6 +13,6 @@ RUN chmod +x /app/scripts/market-sync-entry.sh
 
 ENV PYTHONPATH=/app/packages/exchange-sdk:/app/services/market-data
 ENV MARKET_DATA_MIN_HISTORY_DAYS=0
-ENV MARKET_HISTORY_DAYS=1825
+ENV MARKET_HISTORY_DAYS=1095
 
 ENTRYPOINT ["bash", "/app/scripts/market-sync-entry.sh"]

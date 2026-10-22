@@ -74,6 +74,12 @@ jobs:
             "${VPS_USER}@${VPS_HOST}" \
             "bash ${VPS_DEPLOY_PATH}/scripts/enable-email-auth-env.sh ${VPS_DEPLOY_PATH}"
 
+      - name: Switch candle history to 3 years once
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" \
+            "bash ${VPS_DEPLOY_PATH}/scripts/once-switch-candle-history-3y.sh ${VPS_DEPLOY_PATH}"
+
       - name: Rebuild web container
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
